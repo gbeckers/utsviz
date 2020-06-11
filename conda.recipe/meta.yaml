@@ -1,0 +1,38 @@
+requirements:{% set name = "utsviz" %}
+  {% set version = "0.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  noarch: python
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - python >=3.6
+    - setuptools
+  run:
+    - python >=3.6
+    - numpy >=1.12
+    - matplotlib
+    - scipy
+
+test:
+  imports:
+    - utsviz
+
+about:
+  home: https://github.com/gbeckers/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: >-
+    A Python science library for visualizing signals from uts library.
+  description: |
+    A Python science library for visualizing signals from uts library
