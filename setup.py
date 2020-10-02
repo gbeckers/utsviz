@@ -1,13 +1,10 @@
-__author__ = 'gabriel'
-
 import sys
 import versioneer
 import setuptools
 
 if sys.version_info < (3,6):
-    print("Darr requires Python 3.6 or higher please upgrade")
+    print("Utsviz requires Python 3.6 or higher please upgrade")
     sys.exit(1)
-
 
 DESCRIPTION = 'utsviz, a python package for uniform time series visualization'
 LONG_DESCRIPTION = """Uniform Time Series Visualization
@@ -32,8 +29,7 @@ CLASSIFIERS = [
     'Topic :: Scientific/Engineering',
 ]
 
-
-setup(
+setuptools.setup(
   name = DISTNAME,
   version=versioneer.get_version(),
   cmdclass=versioneer.get_cmdclass(),
@@ -46,5 +42,8 @@ setup(
   download_url=DOWNLOAD_URL,
   long_description=LONG_DESCRIPTION,
   classifiers=CLASSIFIERS,
-  platforms='any', requires=['matplotlib', 'scipy']
+  platforms='any', requires=['matplotlib', 'scipy', 'seaborn', 'numpy'],
+  python_requires='>=3.6',
+  install_requires=['numpy'],
+  data_files = [("", ["LICENSE"])],
 )
