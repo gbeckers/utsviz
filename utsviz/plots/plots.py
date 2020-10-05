@@ -112,7 +112,7 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
         high = np.max(uts.max(emcuts))
         clim = (low,high)
     extent = list(emcuts.timerange)
-    extent.extend([0,emcuts.nepochs])
+    extent.extend([emcuts.nepochs, 0])
     for i, channelname in enumerate(emcuts.channelnames):
         ax = ga.axes[channelname]
         pl = ax.imshow(emcuts[:, channelname].samples.get(False),
