@@ -124,6 +124,39 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
     return ga
 
 
+def plot_euts(euts, ax=None, clim=None, cmap='hot',
+                ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
+                vlines=None, hlines=None, vlinecolor=(0.5, 0.5, 0.5),
+                hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1.,
+                **kwargs):
+    defaults = {'aspect': 'auto', 'interpolation': 'nearest'}
+    if 'linewidth' in kwargs:
+        linewidth = kwargs['linewidth']
+    else:
+        linewidth = 1.0
+    for key, item in defaults.items():
+        if not key in kwargs:
+            kwargs[key] = item
+    if clim is None:
+        low = np.min(uts.min(euts))
+        high = np.max(uts.max(euts))
+        clim = (low,high)
+    extent = list(euts.timerange)
+    extent.extend([euts.nepochs, 0])
+
+    if ax is None:
+        ax = plt.gca(frameon=False)
+
+    pl = ax.imshow(euts.samples.get(False),
+                   cmap=cmap, clim=clim, extent=extent, **kwargs)
+    if not vlines is None:
+        for vline in vlines:
+            ax.axvline(vline, color=vlinecolor, linewidth=vlinewidth)
+    if not hlines is None:
+        for hline in hlines:
+            ax.axhline(hline, color=hlinecolor, linewidth=hlinewidth)
+    return ax
+
 def euts_image(euts, ranges=None, clip=None, zeroincenter=False,
                invert=False, colormap=None, includebar=False,
                transparantcolor=None):
@@ -133,7 +166,7 @@ def euts_image(euts, ranges=None, clip=None, zeroincenter=False,
         raise ValueError("You cannot set ranges and clip parameters at the"
                          " same time")
     if colormap is None:
-        colormap = matplotlib.cm.jet
+        colormap = matplotlib.cm.hot
     samples = euts.samples.get(copy=True)
     if euts.epochaxis == 1:
         samples = np.rot90(samples)

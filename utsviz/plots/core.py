@@ -11,6 +11,8 @@ def plot(s, **kwargs):
 
     if isuts(s):
         return plots.plot_uts(s, **kwargs)
+    elif iseuts(s):
+        return plots.plot_euts(s, **kwargs)
     elif ismcuts(s):
         return plots.plot_mcuts(s, **kwargs)
     elif isemcuts(s):
