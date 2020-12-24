@@ -195,6 +195,7 @@ def euts_image(euts, ranges=None, clip=None, zeroincenter=False,
     return colors
 
 
+# FIXME use plt.imsave
 def save_euts_image(euts, basefilename, path='.', ranges=None, clip=None,
                     zeroincenter=False, invert=False, colormap=None,
                     includebar=False, transparantcolor=None):
