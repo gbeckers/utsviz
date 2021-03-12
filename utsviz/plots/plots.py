@@ -78,8 +78,9 @@ def plot_mcuts(mcuts, ylim=None, wspace=0.06,
         ax = ga.axes[channelname]
         pl = ax.plot(mcuts.samplingtimes(),
             mcuts[:, channelname].samples.get(False), **kwargs)
-        ax.set_ylim([low, high])
-    if autoyticks:
+        if not np.isnan(np.array([low, high])).any():
+            ax.set_ylim([low, high])
+    if autoyticks and not np.isnan(np.array([low, high])).any():
         ga.set_yticks((low,high))
     return ga
 
