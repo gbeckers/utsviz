@@ -7,12 +7,14 @@ from matplotlib import cm
 import os
 from pathlib import Path
 import subprocess
+import matplotlib
 import matplotlib.animation as animation
 from matplotlib.pylab import plt
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.lines as lines
 from scipy.signal import spectrogram
+matplotlib.use('webagg')
 
 
 __all__ = ['codecs', 'FramesTimeAligned', 'interpolations', 'HPanelMovie',
@@ -69,10 +71,12 @@ class FramesTimeAligned(uts.UniformTime):
         self.realslowdown = mcutss[0].fs / float(self.decimate * fps)
         starttime = mcutss[0].timerange[0]
         origintime = mcutss[0].origintime
+        startdatetime = mcutss[0].startdatetime
 
         uts.UniformTime.__init__(self, ntimesamples=ntimesamples,
                                  fs=float(fps*self.realslowdown),
-                                 starttime=starttime, origintime=origintime)
+                                 starttime=starttime, origintime=origintime,
+                                 startdatetime=startdatetime)
 
         self.show_progress = show_progress
         if chunksize is None:
@@ -169,7 +173,7 @@ class HPanelMovie(object):
                  hmargin=0.15, vmargin=0.0, hspace=0.15,
                  timebarheight=0.4, legendbarheight=0.8,
                  staticimlabelbarheight=0.4, dynamicimlabelbarheight=0.4,
-                 labelbarfontsize=12, timebarfontsize=11, dpi=100,
+                 labelbarfontsize=12, timebarfontsize=12, dpi=100,
                  facecolor='white', colorbarshrink=0.8, colorbarlabels=None,
                  include_frameno=False, include_dt=False, sound=None,
                  topaxesheight=0.0, multitopaxes=False,
@@ -370,7 +374,10 @@ class HPanelMovie(object):
 
         ars, frameno, time = next(self.framegenerator)
         changed = []
-        textline = 'Time: {:.3f} s'.format(time)
+        if np.isnat(self.fta.startdatetime):
+            textline = f'{time}'
+        else:
+            textline = f'{self.fta.time_to_datetime(time)}'[:-6]
         if self.include_frameno:
             textline = '{}    Frame: {:d}'.format(textline, frameno)
         if self.include_dt:
@@ -446,7 +453,7 @@ class HPanelMovie(object):
     def create(self, basefilename, path='.',
                codec=codecs['h264_yuv420'],
                vextraargs=('-vcodec', 'libx264', '-crf', '5'),
-               extension='.mp4', blit=True,
+               extension='.mp4', blit=False,
                overwrite=False, savepng=False):
 
         def initanim():
