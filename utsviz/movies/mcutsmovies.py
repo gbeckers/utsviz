@@ -1,4 +1,6 @@
-from __future__ import print_function
+
+import matplotlib
+#matplotlib.rcParams['animation.frame_format'] = 'jpeg'
 
 import numpy as np
 import uts
@@ -7,14 +9,13 @@ from matplotlib import cm
 import os
 from pathlib import Path
 import subprocess
-import matplotlib
 import matplotlib.animation as animation
 from matplotlib.pylab import plt
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.lines as lines
 from scipy.signal import spectrogram
-matplotlib.use('webagg')
+
 
 
 __all__ = ['codecs', 'FramesTimeAligned', 'interpolations', 'HPanelMovie',
@@ -36,7 +37,7 @@ codecs = {'png': (('-an', '-vcodec', 'png'), '%06d.png'),
           ('-vcodec', 'huffyuv', '-pix_fmt', 'rgb24'), '.avi'),
           'avi_effectivelylossless2': (
           ('-vcodec', 'huffyuv', '-pix_fmt', 'yuv422p'), '.avi'),
-          'avi_perceptuallylossless': (
+              'avi_perceptuallylossless': (
           ('-vcodec', 'mjpeg', '-qscale:v', '1'), '.avi')}
 
 
@@ -177,7 +178,8 @@ class HPanelMovie(object):
                  facecolor='white', colorbarshrink=0.8, colorbarlabels=None,
                  include_frameno=False, include_dt=False, sound=None,
                  topaxesheight=0.0, multitopaxes=False,
-                 staticimlabelscolor='black', timecolor='black'):
+                 staticimlabelscolor='black', timecolor='black',
+                 savefig_kwargs=None):
 
         self.fta = fta
         self.npannels = fta.npannels
@@ -226,6 +228,8 @@ class HPanelMovie(object):
         self.pngfullpath = None
         self.savefig_kwargs = {'facecolor': self.facecolor,
                                'edgecolor': 'none'}
+        if savefig_kwargs is not None:
+            self.savefig_kwargs.update(savefig_kwargs)
         self.npannels = fta.npannels
         self.interpolation = interpolation
         self.setup_fig()
