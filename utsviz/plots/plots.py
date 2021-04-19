@@ -124,17 +124,14 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
         #     ax.axhline(hline, color=vlinecolor, linewidth=linewidth)
     return ga
 
-
+# FIXME create a figkwargs and axkwargs
 def plot_euts(euts, ax=None, clim=None, cmap='hot',
-                ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
+                ylabel=None, xlabel='Time (s)', yticks=None, xticks=None,
                 vlines=None, hlines=None, vlinecolor=(0.5, 0.5, 0.5),
                 hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1.,
                 **kwargs):
     defaults = {'aspect': 'auto', 'interpolation': 'nearest'}
-    if 'linewidth' in kwargs:
-        linewidth = kwargs['linewidth']
-    else:
-        linewidth = 1.0
+
     for key, item in defaults.items():
         if not key in kwargs:
             kwargs[key] = item
@@ -144,10 +141,8 @@ def plot_euts(euts, ax=None, clim=None, cmap='hot',
         clim = (low,high)
     extent = list(euts.timerange)
     extent.extend([euts.nepochs, 0])
-
     if ax is None:
         ax = plt.gca(frameon=False)
-
     pl = ax.imshow(euts.samples.get(False),
                    cmap=cmap, clim=clim, extent=extent, **kwargs)
     if not vlines is None:
@@ -156,6 +151,10 @@ def plot_euts(euts, ax=None, clim=None, cmap='hot',
     if not hlines is None:
         for hline in hlines:
             ax.axhline(hline, color=hlinecolor, linewidth=hlinewidth)
+    if xticks is not None:
+        ax.set_xticks(xticks)
+    if yticks is not None:
+        ax.set_yticks(yticks)
     return ax
 
 def euts_image(euts, ranges=None, clip=None, zeroincenter=False,
