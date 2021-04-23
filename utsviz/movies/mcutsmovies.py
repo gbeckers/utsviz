@@ -119,7 +119,7 @@ class FramesTimeAligned(uts.UniformTime):
         else:
             return [cmap if hasattr(cmap, '__call__') else cm.get_cmap(cmap)
                     for cmap in colormaps]
-
+    # TODO choose something reasonable if None
     def check_clips(self, clips, mcutss):
         if clips is None:
             return [None for mcuts in mcutss]
@@ -284,7 +284,7 @@ class HPanelMovie(object):
         self.calc_sizes()
         self.fig = fig = plt.figure(figsize=(self.figwidth, self.figheight),
                                     facecolor='white', edgecolor=None,
-                                    frameon=False)
+                                    frameon=True)
         self.gs = gs = gridspec.GridSpec(4, self.npannels, wspace=0.0,
                                          hspace=0.00)
 
