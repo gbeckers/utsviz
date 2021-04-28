@@ -14,7 +14,9 @@ from uts.core.geometry import RectangularLattice
 from .core import GridAxes
 
 
-def plot_uts(s, ax=None, ylim=None, vline=None, hline=None, **kwargs):
+def plot_uts(s, ax=None, ylim=None, vlines=None, hlines=None, hline=None, vline=None, vlinecolor='k',
+             hlinecolor='k', **kwargs):
+    # vline hline parameter for backward compatibility
     defaults = {'color': (0.3,0.3,0.3)}
     for key, item in defaults.items():
         if not key in kwargs:
@@ -32,10 +34,16 @@ def plot_uts(s, ax=None, ylim=None, vline=None, hline=None, **kwargs):
     else:
         low, high = ylim
     ax.set_ylim([low, high])
-    if not vline is None:
-        ax.axvline(vline, color='k')
-    if not hline is None:
-        ax.axhline(hline, color='k')
+    if vline is not None:
+        vlines = [vline]
+    if not vlines is None:
+        for vline in vlines:
+            ax.axvline(vline, color=vlinecolor)
+    if hline is not None:
+        hlines = [hline]
+    if not hlines is None:
+        for hline in hlines:
+            ax.axhline(hline, color=hlinecolor)
     return ax
 
 
