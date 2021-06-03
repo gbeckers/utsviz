@@ -47,7 +47,7 @@ def plot_uts(s, ax=None, ylim=None, vlines=None, hlines=None, hline=None, vline=
     return ax
 
 
-def plot_mcuts(mcuts, ylim=None, wspace=0.06,
+def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
                hspace=0.06, left=None, right=None, bottom=None, top=None,
                ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
                autoyticks=False,
@@ -76,20 +76,28 @@ def plot_mcuts(mcuts, ylim=None, wspace=0.06,
         if not key in kwargs:
             kwargs[key] = item
     if ylim is None:
-        low = np.min(uts.min(mcuts))
-        high = np.max(uts.max(mcuts))
-        low -= abs(low * 0.05)
-        high += abs(high * 0.05)
+        ylow = np.min(uts.min(mcuts))
+        yhigh = np.max(uts.max(mcuts))
+        ylow -= abs(ylow * 0.05)
+        yhigh += abs(yhigh * 0.05)
     else:
-        low, high = ylim
+        ylow, yhigh = ylim
+    samplingtimes = mcuts.samplingtimes()
+    if xlim is None:
+        xlow = samplingtimes[0]
+        xhigh = samplingtimes[1]
+    else:
+        xlow, xhigh = xlim
     for i, channelname in enumerate(mcuts.channelnames):
         ax = ga.axes[channelname]
-        pl = ax.plot(mcuts.samplingtimes(),
+        pl = ax.plot(samplingtimes,
             mcuts[:, channelname].samples.get(False), **kwargs)
-        if not np.isnan(np.array([low, high])).any():
-            ax.set_ylim([low, high])
-    if autoyticks and not np.isnan(np.array([low, high])).any():
-        ga.set_yticks((low,high))
+        if not np.isnan(np.array([ylow, yhigh])).any():
+            ax.set_ylim([ylow, yhigh])
+        if not np.isnan(np.array([xlow, xhigh])).any():
+            ax.set_xlim([xlow, xhigh])
+    if autoyticks and not np.isnan(np.array([ylow, yhigh])).any():
+        ga.set_yticks((ylow,yhigh))
     return ga
 
 
