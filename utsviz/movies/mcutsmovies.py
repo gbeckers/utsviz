@@ -174,12 +174,12 @@ class HPanelMovie(object):
                  hmargin=0.15, vmargin=0.0, hspace=0.15,
                  timebarheight=0.4, legendbarheight=0.8,
                  staticimlabelbarheight=0.4, dynamicimlabelbarheight=0.4,
-                 labelbarfontsize=12, timebarfontsize=12, dpi=100,
+                 labelbarfontsize=12, timebarfontsize=10, dpi=100,
                  facecolor='white', colorbarshrink=0.8, colorbarlabels=None,
                  include_frameno=False, include_dt=False, sound=None,
                  topaxesheight=0.0, multitopaxes=False,
                  staticimlabelscolor='black', timecolor='black',
-                 savefig_kwargs=None):
+                 showdatetime=False, savefig_kwargs=None):
 
         self.fta = fta
         self.npannels = fta.npannels
@@ -209,6 +209,7 @@ class HPanelMovie(object):
         self.colorbarshrink = colorbarshrink
         self.include_frameno = include_frameno
         self.include_dt = include_dt
+        self.showdatetime = showdatetime
         self.sound = sound
 
         self.topaxess = []
@@ -378,10 +379,10 @@ class HPanelMovie(object):
 
         ars, frameno, time = next(self.framegenerator)
         changed = []
-        if np.isnat(self.fta.startdatetime):
-            textline = f'{time}'
-        else:
+        if not np.isnat(self.fta.startdatetime) and self.showdatetime==True:
             textline = f'{self.fta.time_to_datetime(time)}'[:-6]
+        else:
+            textline = f'{time:.3f} s.'
         if self.include_frameno:
             textline = '{}    Frame: {:d}'.format(textline, frameno)
         if self.include_dt:
