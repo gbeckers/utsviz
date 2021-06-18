@@ -29,8 +29,9 @@ def plot_uts(s, ax=None, ylim=None, vlines=None, hlines=None, hline=None, vline=
     if ylim is None:
         low = np.min(uts.min(s))
         high = np.max(uts.max(s))
-        low -= abs(low * 0.05)
-        high += abs(high * 0.05)
+        margin = (high - low) * 0.05
+        low -= margin
+        high += margin
     else:
         low, high = ylim
     ax.set_ylim([low, high])
@@ -78,8 +79,9 @@ def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
     if ylim is None:
         ylow = np.min(uts.min(mcuts))
         yhigh = np.max(uts.max(mcuts))
-        ylow -= abs(ylow * 0.05)
-        yhigh += abs(yhigh * 0.05)
+        margin = (yhigh - ylow) * 0.05
+        ylow -= margin
+        yhigh += margin
     else:
         ylow, yhigh = ylim
     samplingtimes = mcuts.samplingtimes()
