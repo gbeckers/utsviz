@@ -51,10 +51,9 @@ def plot_uts(s, ax=None, ylim=None, vlines=None, hlines=None, hline=None, vline=
 def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
                hspace=0.06, left=None, right=None, bottom=None, top=None,
                ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
-               autoyticks=False,
-               ga=None, vlines=None, hlines=None, vlinecolor=(0.5, 0.5, 0.5),
-               hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1.,
-               **kwargs):
+               autoyticks=False, ga=None, vlines=None, hlines=None,
+               vlinecolor=(0.5, 0.5, 0.5), hlinecolor=(0.5,0.5,0.5),
+               vlinewidth=1., hlinewidth=1., **kwargs):
     if ga is None:
         ga = GridAxes(mcuts.geometry, wspace=wspace, hspace=hspace,
                       left=left, right=right,
@@ -77,8 +76,8 @@ def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
         if not key in kwargs:
             kwargs[key] = item
     if ylim is None:
-        ylow = np.min(uts.min(mcuts))
-        yhigh = np.max(uts.max(mcuts))
+        ylow = np.min(uts.min(mcuts, 'time'))
+        yhigh = np.max(uts.max(mcuts, 'time'))
         margin = (yhigh - ylow) * 0.05
         ylow -= margin
         yhigh += margin
@@ -87,7 +86,7 @@ def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
     samplingtimes = mcuts.samplingtimes()
     if xlim is None:
         xlow = samplingtimes[0]
-        xhigh = samplingtimes[1]
+        xhigh = samplingtimes[-1]
     else:
         xlow, xhigh = xlim
     for i, channelname in enumerate(mcuts.channelnames):
