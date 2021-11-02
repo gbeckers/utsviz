@@ -61,9 +61,9 @@ divmap1 = diverging_palette(h_neg=210, h_pos=350, s=90, l=30, as_cmap=True)
 
 # fixme include seaborn maps?
 def check_colormap(colormap):
-    if isinstance(colormap, 'str'):
+    if isinstance(colormap, str):
         if colormap in colormaps():
-            colormap = get_cmap(colormap)
+            return get_cmap(colormap)
         elif colormap == 'voltage':
             return voltage
         elif colormap == 'voltage_r':
