@@ -499,10 +499,10 @@ class HPanelMovie(object):
         nframes = int(self.fta.ntimesamples)
         ani = animation.FuncAnimation(self.fig, self.update_img, nframes,
                                       init_func=initanim,
-                                      interval=25,
+                                      interval=self.fta.fps,
                                       blit=blit)
 
-        writer = animation.writers['ffmpeg'](fps=25, bitrate=-1,
+        writer = animation.writers['ffmpeg'](fps=self.fta.fps, bitrate=-1,
                                              extra_args=vextraargs)
         ani.save(fullpath, writer=writer, dpi=self.dpi,
                  savefig_kwargs=self.savefig_kwargs)

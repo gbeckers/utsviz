@@ -106,7 +106,7 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
                 hspace=0.06, left=None, right=None, bottom=None, top=None,
                 ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
                 ga=None, vlines=None, hlines=None, vlinecolor=(0.5, 0.5, 0.5),
-                hlinecolor=(0.5,0.5,0.5),
+                hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1.,
                 **kwargs):
     if ga is None:
         ga = GridAxes(emcuts.geometry, wspace=wspace, hspace=hspace,
@@ -116,6 +116,7 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
                       yticks=yticks, xticks=xticks,
                       vlines=vlines, vlinecolor=vlinecolor,
                       hlines=hlines, hlinecolor=hlinecolor,
+                      vlinewidth=vlinewidth, hlinewidth=hlinewidth,
                       fig=None)
     defaults = {'aspect': 'auto', 'interpolation': 'nearest'}
     if 'linewidth' in kwargs:

@@ -3,21 +3,27 @@ import matplotlib.cm
 import scipy
 import os.path
 
+from utsviz.colormaps import check_colormap
+
+from matplotlib.image import imsave
+
 __all__ = ['save_pngcolormap', 'tableau20', 'to_image', 'iminterpolate']
 
 
 def save_pngcolormap(filename, colormap=matplotlib.cm.jet, width=300, height=20):
+    colormap = check_colormap(colormap)
     bar = np.empty((height, width, 4), dtype=np.float64)
     bar[:, ..., :] = colormap(np.linspace(0., 1., width))
-    scipy.misc.toimage(bar).save(filename)
+    imsave(filename, bar)
     return os.path.abspath(filename)
 
 
 # FIXME possibility of setting nan to number
 def to_image(samples, ranges=None, clip=None, zeroincenter=False,
-             invert=False, colormap=matplotlib.cm.jet, includebar=False, nancolor=None):
+             invert=False, colormap='jet', includebar=False, nancolor=None):
     if (not (clip is None)) and (not (ranges is None)):
         raise ValueError("You cannot set ranges and clip parameters at the same time")
+    colormap = check_colormap(colormap)
     samples = np.array(samples, np.float64)
     low = np.nanmin(samples)
     high = np.nanmax(samples)

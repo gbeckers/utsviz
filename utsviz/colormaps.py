@@ -1,10 +1,12 @@
 import os.path
 import numpy as np
-import scipy
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.image import imsave
+from matplotlib.cm import get_cmap
+from matplotlib.pyplot import colormaps
 from seaborn import diverging_palette
 
-__all__ = ['divmap1', 'voltage', 'voltage_r']
+__all__ = ['check_colormap','divmap1', 'pngcolorbar','voltage', 'voltage_r']
 
 
 class VoltageMap(LinearSegmentedColormap):
@@ -57,9 +59,24 @@ voltage_r = VoltageMapR()
 # nice diverging map use for heatmaps
 divmap1 = diverging_palette(h_neg=210, h_pos=350, s=90, l=30, as_cmap=True)
 
+# fixme include seaborn maps?
+def check_colormap(colormap):
+    if isinstance(colormap, 'str'):
+        if colormap in colormaps():
+            colormap = get_cmap(colormap)
+        elif colormap == 'voltage':
+            return voltage
+        elif colormap == 'voltage_r':
+            return voltage_r
+        elif colormap == 'divmap1':
+            return divmap1
+    else:
+        return colormap
+
 
 def pngcolorbar(filename, colormap, width=300, height=20):
+    colormap = check_colormap(colormap)
     bar = np.empty((height, width, 4), dtype=np.float64)
     bar[:, ..., :] = colormap(np.linspace(0., 1., width))
-    scipy.misc.toimage(bar).save(filename)
+    imsave(filename, bar)
     return os.path.abspath(filename)
