@@ -33,6 +33,12 @@ codecs = {'png': (('-an', '-vcodec', 'png'), '%06d.png'),
           ('-vcodec', 'libx264', '-crf', '5', '-pix_fmt', 'yuv422p' ), '.mp4'),
           'h264_yuv420': (
           ('-vcodec', 'libx264', '-crf', '5', '-pix_fmt', 'yuv420p'), '.mp4'),
+          'h265_yuv444': (
+          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv444p'), '.mp4'),
+          'h265_yuv422': (
+          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv422p'), '.mp4'),
+          'h265_yuv420': (
+          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv420p'), '.mp4'),
           'avi_effectivelylossless1': (
           ('-vcodec', 'huffyuv', '-pix_fmt', 'rgb24'), '.avi'),
           'avi_effectivelylossless2': (
@@ -431,7 +437,7 @@ class HPanelMovie(object):
     # FIXME update path to python3
     def add_sound(self, filename, path='.', keepwav=False,
                   keeporiginal=False, ffmpegbin='ffmpeg',
-                  vextraargs=('-vcodec', 'libx264', '-crf', '5'),
+                  vextraargs=('-vcodec', 'libx265', '-crf', '5'),
                   soxbin='sox'):
 
         slowdown = self.fta.realslowdown
@@ -456,10 +462,11 @@ class HPanelMovie(object):
 
 
     def create(self, basefilename, path='.',
-               codec=codecs['h264_yuv420'],
-               vextraargs=('-vcodec', 'libx264', '-crf', '5'),
-               extension='.mp4', blit=False,
+               codec=None,
+               vextraargs=None,
+               blit=False,
                overwrite=False, savepng=False):
+        """default codec: h264_yuv420"""
 
         def initanim():
             changed = []
@@ -480,9 +487,11 @@ class HPanelMovie(object):
 
         self.framegenerator =self.fta.generate_frames()
         self.savepng = savepng
-        if not codec is None:
-            vextraargs = codec[0]
-            extension = codec[1]
+        if codec is None:
+            codec = 'h265_yuv444'
+        vargs, extension = codecs[codec]
+        if vextraargs is None:
+            vextraargs = vargs
         filename = basefilename + extension
         fullpath = os.path.join(path, filename)
         if os.path.exists(fullpath):
