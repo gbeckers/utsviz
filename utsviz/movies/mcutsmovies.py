@@ -488,7 +488,7 @@ class HPanelMovie(object):
         self.framegenerator =self.fta.generate_frames()
         self.savepng = savepng
         if codec is None:
-            codec = 'h265_yuv444'
+            codec = 'h264_yuv420'
         vargs, extension = codecs[codec]
         if vextraargs is None:
             vextraargs = vargs
