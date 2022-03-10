@@ -28,17 +28,17 @@ interpolations = ("nearest", "bilinear", "bicubic", "spline16",
                   "bessel", "mitchell", "sinc", "lanczos")
 
 codecs = {'png': (('-an', '-vcodec', 'png'), '%06d.png'),
-          'h264_yuv444': (('-vcodec', 'libx264', '-crf', '5'), '.mp4'),
+          'h264_yuv444': (('-vcodec', 'libx264', '-crf', '5', '-tune', 'animation'), '.mp4'),
           'h264_yuv422': (
-          ('-vcodec', 'libx264', '-crf', '5', '-pix_fmt', 'yuv422p' ), '.mp4'),
+          ('-vcodec', 'libx264', '-crf', '5', '-pix_fmt', 'yuv422p', '-tune', 'animation'), '.mp4'),
           'h264_yuv420': (
-          ('-vcodec', 'libx264', '-crf', '5', '-pix_fmt', 'yuv420p'), '.mp4'),
+          ('-vcodec', 'libx264', '-crf', '5', '-pix_fmt', 'yuv420p', '-tune', 'animation'), '.mp4'),
           'h265_yuv444': (
-          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv444p'), '.mp4'),
+          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv444p', '-tune', 'animation'), '.mp4'),
           'h265_yuv422': (
-          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv422p'), '.mp4'),
+          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv422p', '-tune', 'animation'), '.mp4'),
           'h265_yuv420': (
-          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv420p'), '.mp4'),
+          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv420p', '-tune', 'animation'), '.mp4'),
           'avi_effectivelylossless1': (
           ('-vcodec', 'huffyuv', '-pix_fmt', 'rgb24'), '.avi'),
           'avi_effectivelylossless2': (
@@ -465,7 +465,8 @@ class HPanelMovie(object):
                codec=None,
                vextraargs=None,
                blit=False,
-               overwrite=False, savepng=False):
+               overwrite=False,
+               savepng=False):
         """default codec: h264_yuv420"""
 
         def initanim():
@@ -492,6 +493,7 @@ class HPanelMovie(object):
         vargs, extension = codecs[codec]
         if vextraargs is None:
             vextraargs = vargs
+
         filename = basefilename + extension
         fullpath = os.path.join(path, filename)
         if os.path.exists(fullpath):
