@@ -437,7 +437,6 @@ class HPanelMovie(object):
     # FIXME update path to python3
     def add_sound(self, filename, path='.', keepwav=False,
                   keeporiginal=False, ffmpegbin='ffmpeg',
-                  vextraargs=('-vcodec', 'libx265', '-crf', '5'),
                   soxbin='sox'):
 
         slowdown = self.fta.realslowdown
@@ -452,8 +451,8 @@ class HPanelMovie(object):
                 wavpath = os.path.abspath(
                     os.path.join(tempwavdir, 'even_slow.wav'))
             moviewithsoundname = os.path.splitext(filename)[0] + '_snd.mp4'
-            args = [ffmpegbin, '-y', '-i', filename, '-i', wavpath]
-            args.extend(vextraargs)
+            args = [ffmpegbin, '-y', '-i', filename, '-i', wavpath,
+                    '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-shortest']
             args.extend(['-strict',  '-2'])
             args.append(moviewithsoundname)
             subprocess.check_call(args)
