@@ -512,7 +512,7 @@ class HPanelMovie(object):
                                       interval=self.fta.fps,
                                       blit=blit)
 
-        writer = animation.writers['ffmpeg'](fps=self.fta.fps, bitrate=-1,
+        writer = animation.FFMpegWriter(fps=self.fta.fps, bitrate=-1,
                                              extra_args=vextraargs)
         ani.save(fullpath, writer=writer, dpi=self.dpi,
                  savefig_kwargs=self.savefig_kwargs)
