@@ -69,6 +69,7 @@ class GridAxes(object):
                  vlines=None, vlinecolor=(0.5, 0.5, 0.5),
                  hlines=None, hlinecolor=(0.5, 0.5, 0.5),
                  vlinewidth=1., hlinewidth=1.,
+                 frameon=False,
                  fig=None):
 
         if left is None:
@@ -92,7 +93,7 @@ class GridAxes(object):
             for pointname in pointnamerow:
                 rown, coln = g[pointname]
                 axes[pointname] = ax = fig.add_subplot(gs[rown, coln],
-                                                       frameon=False)
+                                                       frameon=frameon)
                 ax.set_xticks(())
                 ax.set_yticks(())
                 if (coln == 0) and (rown == ny - 1):

@@ -15,14 +15,14 @@ from .core import GridAxes
 
 
 def plot_uts(s, ax=None, ylim=None, vlines=None, hlines=None, hline=None, vline=None, vlinecolor='k',
-             hlinecolor='k', **kwargs):
+             hlinecolor='k', frameon=False, **kwargs):
     # vline hline parameter for backward compatibility
     defaults = {'color': (0.3,0.3,0.3)}
     for key, item in defaults.items():
         if not key in kwargs:
             kwargs[key] = item
     if ax is None:
-        ax = plt.gca(frameon=False)
+        ax = plt.gca(frameon=frameon)
     pl = ax.plot(s.samplingtimes(),
         s.samples.get(False), **kwargs)
     ax.tick_params(direction='out', top=False, right=False)
@@ -53,7 +53,7 @@ def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
                ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
                autoyticks=False, ga=None, vlines=None, hlines=None,
                vlinecolor=(0.5, 0.5, 0.5), hlinecolor=(0.5,0.5,0.5),
-               vlinewidth=1., hlinewidth=1., **kwargs):
+               vlinewidth=1., hlinewidth=1., frameon=False, **kwargs):
     if ga is None:
         ga = GridAxes(mcuts.geometry, wspace=wspace, hspace=hspace,
                       left=left, right=right,
@@ -63,7 +63,7 @@ def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
                       vlines=vlines, vlinecolor=vlinecolor,
                       hlines=hlines, hlinecolor=hlinecolor,
                       vlinewidth=vlinewidth, hlinewidth=hlinewidth,
-                      fig=None)
+                      frameon=frameon, fig=None)
 
     defaults = {'color': (0.3,0.3,0.3)}
     if 'linewidth' in kwargs:
@@ -106,7 +106,7 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
                 hspace=0.06, left=None, right=None, bottom=None, top=None,
                 ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
                 ga=None, vlines=None, hlines=None, vlinecolor=(0.5, 0.5, 0.5),
-                hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1.,
+                hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1., frameon=False,
                 **kwargs):
     if ga is None:
         ga = GridAxes(emcuts.geometry, wspace=wspace, hspace=hspace,
@@ -117,7 +117,7 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
                       vlines=vlines, vlinecolor=vlinecolor,
                       hlines=hlines, hlinecolor=hlinecolor,
                       vlinewidth=vlinewidth, hlinewidth=hlinewidth,
-                      fig=None)
+                      frameon=frameon, fig=None)
     defaults = {'aspect': 'auto', 'interpolation': 'nearest'}
     if 'linewidth' in kwargs:
         linewidth = kwargs['linewidth']
@@ -147,7 +147,7 @@ def plot_euts(euts, ax=None, clim=None, cmap='hot',
                 ylabel=None, xlabel='Time (s)', yticks=None, xticks=None,
                 vlines=None, hlines=None, vlinecolor=(0.5, 0.5, 0.5),
                 hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1.,
-                **kwargs):
+                frameon=False, **kwargs):
     defaults = {'aspect': 'auto', 'interpolation': 'nearest'}
 
     for key, item in defaults.items():
@@ -160,7 +160,7 @@ def plot_euts(euts, ax=None, clim=None, cmap='hot',
     extent = list(euts.timerange)
     extent.extend([euts.nepochs, 0])
     if ax is None:
-        ax = plt.gca(frameon=False)
+        ax = plt.gca(frameon=frameon)
     pl = ax.imshow(euts.samples.get(False),
                    cmap=cmap, clim=clim, extent=extent, **kwargs)
     if not vlines is None:
@@ -275,7 +275,7 @@ def save_euts_image(euts, basefilename, path='.', ranges=None, clip=None,
 
 def plot_spectrum(s, xlim=None, wspace=0.06,
                    hspace=0.1, left=None, right=None, bottom=None, top=None,
-                   yticks=None, xticks=None, ga=None, **kwargs):
+                   yticks=None, xticks=None, ga=None, frameon=False, **kwargs):
     defaults = {'color': 'black'}
     for key, item in defaults.items():
         if not key in kwargs:
@@ -286,7 +286,8 @@ def plot_spectrum(s, xlim=None, wspace=0.06,
                       left=left, right=right,
                       bottom=bottom, top=top,
                       ylabel='', xlabel='',
-                      yticks=yticks, xticks=xticks, fig=None)
+                      yticks=yticks, xticks=xticks, fig=None,
+                      frameon=frameon)
     if xlim is None:
         xlim = s.frequencyrange
     ax1 = ga.axes['magnitude']
