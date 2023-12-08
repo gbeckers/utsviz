@@ -22,7 +22,8 @@ def plot_uts(s, ax=None, ylim=None, vlines=None, hlines=None, hline=None, vline=
         if not key in kwargs:
             kwargs[key] = item
     if ax is None:
-        ax = plt.gca(frameon=frameon)
+        fig = plt.figure()
+        ax = fig.add_subplot(frameon=frameon)
     pl = ax.plot(s.samplingtimes(),
         s.samples.get(False), **kwargs)
     ax.tick_params(direction='out', top=False, right=False)
@@ -160,7 +161,8 @@ def plot_euts(euts, ax=None, clim=None, cmap='hot',
     extent = list(euts.timerange)
     extent.extend([euts.nepochs, 0])
     if ax is None:
-        ax = plt.gca(frameon=frameon)
+        fig = plt.figure()
+        ax = fig.add_subplot(frameon=frameon)
     pl = ax.imshow(euts.samples.get(False),
                    cmap=cmap, clim=clim, extent=extent, **kwargs)
     if not vlines is None:
@@ -320,7 +322,8 @@ def plot_powerspectrum(s, ax=None, db=True, **kwargs):
         if not key in kwargs:
             kwargs[key] = item
     if ax is None:
-        ax = plt.gca()
+        fig = plt.figure()
+        ax = fig.add_subplot()
     samples = s.samples.get(False) ** 2.
     if db:
         samples = 10 * np.log10(samples)
