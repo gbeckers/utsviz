@@ -14,13 +14,14 @@ from matplotlib.pylab import plt
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.lines as lines
+import matplotlib.patches as patches
 from scipy.signal import spectrogram
 
 
 
 __all__ = ['codecs', 'FramesTimeAligned', 'interpolations', 'HPanelMovie',
            'TimeIndicatedLetterAxes', 'LetterAxes', 'SpecgramAxes',
-           'TimeIndicatedSpecgramAxes']
+           'TimeIndicatedSpecgramAxes', 'HPanelImgPlusPlotMovie']
 
 interpolations = ("nearest", "bilinear", "bicubic", "spline16",
                   "spline36", "hanning", "hamming", "hermite",
@@ -33,12 +34,14 @@ codecs = {'png': (('-an', '-vcodec', 'png'), '%06d.png'),
           ('-vcodec', 'libx264', '-crf', '5', '-pix_fmt', 'yuv422p', '-tune', 'animation'), '.mp4'),
           'h264_yuv420': (
           ('-vcodec', 'libx264', '-crf', '5', '-pix_fmt', 'yuv420p', '-tune', 'animation'), '.mp4'),
+          'h264_yuv420_smaller': (
+          ('-vcodec', 'libx264', '-crf', '23', '-pix_fmt', 'yuv420p', '-tune', 'animation'), '.mp4'),
           'h265_yuv444': (
           ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv444p', '-tune', 'animation'), '.mp4'),
           'h265_yuv422': (
           ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv422p', '-tune', 'animation'), '.mp4'),
           'h265_yuv420': (
-          ('-vcodec', 'libx265', '-crf', '5', '-pix_fmt', 'yuv420p', '-tune', 'animation'), '.mp4'),
+          ('-vcodec', 'libx265', '-crf', '23', '-pix_fmt', 'yuv420p', '-tune', 'animation'), '.mp4'),
           'avi_effectivelylossless1': (
           ('-vcodec', 'huffyuv', '-pix_fmt', 'rgb24'), '.avi'),
           'avi_effectivelylossless2': (
@@ -254,7 +257,7 @@ class HPanelMovie(object):
                    + self.pannelwidth * self.npannels \
                    + self.hspace * (self.npannels - 1 )
         # the next is necessary because we want even number of pixels in
-        # both width and height; some compress ion codecs won't work otherwise
+        # both width and height; some compression codecs won't work otherwise
         width_even_pixels = uts.round_nearesteven(figwidth * self.dpi)
         height_even_pixels = uts.round_nearesteven(figheight * self.dpi)
         figwidth = width_even_pixels / float(self.dpi)
@@ -702,7 +705,7 @@ class TimeIndicatedSpecgramAxes(SpecgramAxes):
     def _draw_timeindicator(self):
         l = self.axes.add_line(
             lines.Line2D((self.starttime, self.starttime),
-                         (self.starttime, self.maxfreq),
+                         (0, self.maxfreq),
                          linewidth=self.linewidth,
                          color=self.indicatorcolor))
         self.timeindicatorline = l
@@ -717,5 +720,452 @@ class TimeIndicatedSpecgramAxes(SpecgramAxes):
         self.timeindicatorline.set_data((self.starttime, self.starttime),
                                         (0., self.maxfreq))
         return (self.timeindicatorline, )
+
+
+class HPanelImgPlusPlotMovie(object):
+    """
+    Image plot movie of one signal with amplitude plot and moving time indicator.
+
+    """
+    def __init__(self, fta, channelorder=None, staticimlabels=None, dynamicimlabels=None,
+                 imagepannelwidth=2.5, imaspect='auto', wavepannelwidth=5.0, pannelheight=2.5,
+                 interpolation='nearest', wavescaling=None, wavecolor=(0.2, 0.2, 0.2),
+                 wavelinewidth=0.5, timelinewidth=1.0, xticks=None, waveylabels=None,
+                 hmargin=0.15, vmargin=0.15, hspace=0.15,
+                 timebarheight=0.4, legendbarheight=0.8,
+                 staticimlabelbarheight=0.4, dynamicimlabelbarheight=0.4,
+                 labelbarfontsize=12, timebarfontsize=10, dpi=100,
+                 facecolor='white', colorbarshrink=0.8, colorbarlabel=None,
+                 include_frameno=False, include_dt=False, sound=None,
+                 topaxesheight=0.0, multitopaxes=False,
+                 staticimlabelscolor='black', timecolor='black',
+                 showdatetime=False, savefig_kwargs=None,
+                 sleepepisodes=None, accel=None, channelh=None):
+
+        self.fta = fta
+        if not fta.npannels == 1:
+            raise ValueError("FTA should be 1 signal only")
+        self.starttime = fta.mcutss[0].starttime
+        self.duration = fta.mcutss[0].duration
+        if channelorder is None:
+            channelorder = list(fta.mcutss[0].channelnames)
+        self.waveamplitude = max(np.nanmax(fta.mcutss[0].samples[:]), abs(np.nanmin(fta.mcutss[0].samples[:])))
+        if wavescaling is None:
+            wavescaling = 1
+        self.wavescaling = wavescaling
+        self. wavecolor = wavecolor
+        self.wavelinewidth = wavelinewidth
+        #print(channelorder)
+        self.channelorder = channelorder
+        self.xticks = xticks
+        self.waveylabels = waveylabels
+        self.sleepepisodes = sleepepisodes
+        self.accel = accel
+        self.channelh = channelh
+
+        self.framegenerator = None
+        self.dt = 1000 * fta.decimate / fta.fs
+        self.staticimlabels = staticimlabels
+        self.dynamicimlabels = dynamicimlabels
+        if staticimlabels is None:
+            staticimlabelbarheight = 0.0
+        if dynamicimlabels is None:
+            dynamicimlabelbarheight = 0.0
+        self.staticimlabelbarheight = staticimlabelbarheight
+        self.dynamicimlabelbarheight = dynamicimlabelbarheight
+        if colorbarlabel is None:
+            self.colorbarlabel = ''
+        self.colorbarlabel = colorbarlabel
+
+        self.imagepannelwidth = imagepannelwidth
+        self.imaspect = imaspect
+        self.wavepannelwidth = wavepannelwidth
+        self.pannelheight = pannelheight
+        self.timebarheight = timebarheight
+        self.legendbarheight = legendbarheight
+        self.hmargin = hmargin
+        self.vmargin = vmargin
+        self.hspace = hspace
+        self.dpi = dpi
+        self.labelbarfontsize = labelbarfontsize
+        self.timebarfontsize = timebarfontsize
+        self.colorbarshrink = colorbarshrink
+        self.include_frameno = include_frameno
+        self.include_dt = include_dt
+        self.showdatetime = showdatetime
+        self.sound = sound
+
+        self.topaxess = []
+        self.topaxesheight = topaxesheight
+        self.multitopaxes = multitopaxes
+        self.topaxesupdatefuncs = []
+        self.topaxesinitfuncs = []
+
+        self.dynamicimlabeltext = []
+        self.staticimlabelscolor = staticimlabelscolor
+        self.facecolor = facecolor
+        self.timecolor = timecolor
+        self.savepng = None
+        self.fig = None
+        self.axes = None
+        self.ims = None
+        self.ax_wave = None
+        self.pngfullpath = None
+        self.savefig_kwargs = {'facecolor': self.facecolor,
+                               'edgecolor': 'none'}
+        if savefig_kwargs is not None:
+            self.savefig_kwargs.update(savefig_kwargs)
+        self.interpolation = interpolation
+        self.timeindicatorline = None
+        self.timelinewidth = timelinewidth
+        self.setup_fig()
+
+    def calc_sizes(self):
+
+        figheight = self.vmargin * 2 \
+                    + self.topaxesheight \
+                    + self.staticimlabelbarheight \
+                    + self.dynamicimlabelbarheight \
+                    + self.pannelheight \
+                    + self.legendbarheight \
+                    + self.timebarheight
+        figwidth = self.hmargin * 2 \
+                   + self.imagepannelwidth + self.hspace + self.wavepannelwidth
+        # the next is necessary because we want even number of pixels in
+        # both width and height; some compress ion codecs won't work otherwise
+        width_even_pixels = uts.round_nearesteven(figwidth * self.dpi)
+        height_even_pixels = uts.round_nearesteven(figheight * self.dpi)
+        figwidth = width_even_pixels / float(self.dpi)
+        figheight = height_even_pixels / float(self.dpi)
+
+        # calc sizes in fig coordinates
+        self.pannelheight_c = self.pannelheight / figheight
+        self.vmargin_c = self.vmargin / figheight
+        self.topaxesheight_c = self.topaxesheight / figheight
+        self.staticimlabelbarheight_c = self.staticimlabelbarheight / figheight
+        self.dynamicimlabelbarheight_c = self.dynamicimlabelbarheight / figheight
+        self.legendbarheight_c = self.legendbarheight / figheight
+        self.timebarheight_c = self.timebarheight / figheight
+        self.imagepannelwidth_c = self.imagepannelwidth / figwidth
+        self.wavepannelwidth_c = self.wavepannelwidth / figwidth
+        self.hmargin_c = self.hmargin / figwidth
+        self.hspace_c = self.hspace / figwidth
+
+        self.figwidth = figwidth
+        self.figheight = figheight
+
+        #print(self.pannelheight_c, self.vmargin_c, self.topaxesheight_c,
+        #      self.staticimlabelbarheight_c, self.dynamicimlabelbarheight_c,
+        #      self.legendbarheight_c, self.timebarheight_c,
+        #      self.pannelwidth_c, self.hmargin_c, self.hspace_c)
+
+    def setup_fig(self):
+
+        def clear_axes(ax):
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+            ax.set_frame_on(False)
+
+        self.calc_sizes()
+        self.fig = fig = plt.figure(figsize=(self.figwidth, self.figheight),
+                                    facecolor='white', edgecolor=None,
+                                    frameon=True)
+        self.gs = gs = gridspec.GridSpec(4, 2, wspace=0.0,
+                                         hspace=0.00)
+
+        ims = []
+        cbs = []
+        hpos = self.hmargin_c
+
+        self.staticbar = []
+        # image plot
+        x = hpos + self.imagepannelwidth_c / 2.0
+        y = 1 - 2 * self.vmargin_c - self.topaxesheight_c - self.staticimlabelbarheight_c / 2.0
+        if not self.staticimlabels is None:
+            t = self.fig.text(x, y, self.staticimlabels[i],
+                          horizontalalignment='center',
+                          verticalalignment='center', color=self.staticimlabelscolor,
+                          fontsize=self.labelbarfontsize)
+            self.staticbar.append(t)
+        y = 1 - 2 * self.vmargin_c - self.topaxesheight_c - self.staticimlabelbarheight_c \
+            - self.dynamicimlabelbarheight_c / 2.0
+        if not self.dynamicimlabels is None:
+            txt = fig.text(x, y, 'dynamic label',
+                           horizontalalignment='center',
+                           verticalalignment='center', color='black',
+                           fontsize=self.labelbarfontsize)
+            # txt.set_animated(True)
+            self.dynamicimlabeltext.append(txt)
+
+        y = 1 - 2 * self.vmargin_c - self.topaxesheight_c - self.staticimlabelbarheight_c \
+            - self.dynamicimlabelbarheight_c - self.pannelheight_c
+        # print (y, self.vmargin_c, self.topaxesheight_c, self.staticimlabelbarheight_c, self.dynamicimlabelbarheight_c,
+        #        self.pannelheight_c)
+        # image plots, own axes
+        ax_im = fig.add_axes([hpos, y, self.imagepannelwidth_c,
+                              self.pannelheight_c])  # [left, bottom, width, height] values in 0-1 relative figure coordinates
+        ax_wave = fig.add_axes([hpos + self.imagepannelwidth_c + self.hspace_c, y, self.wavepannelwidth_c,
+                              self.pannelheight_c])# [left, bottom, width, height] values in 0-1 relative figure coordinates
+
+        if self.channelh is None:
+            channelh =  self.waveamplitude
+        else:
+            channelh = self.channelh
+        vspace = self.waveamplitude * self.wavescaling
+        yvals = []
+        for chn in self.channelorder:
+            s = self.fta.mcutss[0][:,chn]
+            ax_wave.plot(s.samplingtimes(), s.samples[:] * self.wavescaling + vspace,
+                         color=self.wavecolor, linewidth=self.wavelinewidth)
+            #print(vspace, (s.samples[:] + vspace).mean())
+            yvals.append(vspace)
+            vspace += channelh
+        if self.waveylabels is not None:
+            #print(self.waveylabels, yvals)
+            waveylabels = [(val,wl) for val,wl in zip(yvals,self.waveylabels) if wl != '']
+            ax_wave.set_yticks([val for val, wl in waveylabels] , [wl for val, wl in waveylabels])
+        self.waveplotheight = waveplotheight = vspace - channelh + self.waveamplitude * self.wavescaling
+        #self.waveplotheight = waveplotheight = vspace - self.waveamplitude * self.wavescaling
+        ax_wave.set_xlim(s.starttime-0.01*s.duration, s.starttime + s.duration)
+        ax_wave.set_xlabel('Time (s)')
+        if self.xticks is not None:
+            ax_wave.set_xticks(self.xticks)
+        else:
+            ax_wave.get_yaxis().set_visible(False)
+
+        ax_wave.set_ylim(0, waveplotheight)
+        if self.sleepepisodes is not None:
+            ax_wave.set_ylim(0, waveplotheight * 1.1)
+            self.draw_sleepstagebar(ax=ax_wave, y=1.05 * waveplotheight,  height=0.05 * waveplotheight,
+                                    episodes=self.sleepepisodes)
+        if self.accel is not None:
+            a = self.accel[:]
+            ax_wave.plot(s.samplingtimes(), a[:,2] + waveplotheight *1.15 + 0.75 * channelh,
+                         color=self.wavecolor, linewidth=self.wavelinewidth)
+            ax_wave.plot(s.samplingtimes(), a[:, 1] + waveplotheight *1.15 + 1.5 * channelh,
+                         color=self.wavecolor, linewidth=self.wavelinewidth)
+            ax_wave.plot(s.samplingtimes(), a[:, 0] + waveplotheight *1.15 + 2.25 * channelh,
+                         color=self.wavecolor, linewidth=self.wavelinewidth)
+            ax_wave.set_ylim(0, waveplotheight * 1.15 + 3 * channelh + self.waveamplitude)
+            ax_wave.text(-1.5, waveplotheight *1.15 + 1.5 * channelh, 'Acc', va='center')
+
+
+        #print(self.waveamplitude, channelh, vspace, channelh * len(self.channelorder))
+        self.timeindicatorline = ax_wave.add_line(lines.Line2D((0, 0), (0., waveplotheight),
+                                                               linewidth=self.timelinewidth, color='#F97306',
+                                                               antialiased=True))
+        # print hpos, y, pannelwidth_c, pannelheight_c
+        clear_axes(ax_im)
+
+        #ax_wave.get_xaxis().set_visible(False)
+        ax_wave.set_frame_on(False)
+        #print 'panels', ax_im.get_position()
+        ims.append(ax_im.imshow([[0, 1], [1, 0]],
+                                interpolation=self.interpolation,
+                                cmap=self.fta.colormaps[0], aspect=self.imaspect))
+
+        # color bars, own axes
+        y = self.vmargin_c + self.timebarheight_c
+        ax_cb = fig.add_axes(
+            [hpos, y, self.imagepannelwidth_c, self.legendbarheight_c])
+        clear_axes(ax_cb)
+        #print 'cb', ax_cb.get_position()
+        cb = fig.colorbar(ims[-1], ax=ax_cb, orientation='horizontal',
+                          fraction=1, ticks=(0., 1), aspect=30,
+                          shrink=self.colorbarshrink, anchor=(0.5, 0.5))
+        cb.set_label(self.colorbarlabel, labelpad=-10,
+                     color=self.staticimlabelscolor)
+
+        cb.ax.set_xticklabels(
+            ['{} {}'.format(v, self.fta.units[0]) for v in
+             self.fta.clips[0]])
+        cbs.append(cb)
+        # topaxis
+        if self.topaxesheight != 0.0:
+            y = 1 - self.vmargin_c - self.topaxesheight_c
+            if self.multitopaxes:
+                ax = self.fig.add_axes(
+                    [hpos, y, self.imagepannelwidth_c, self.topaxesheight_c])
+                ax.set_axis_off()
+                self.topaxess.append(ax)
+                self.topaxesupdatefuncs.append(None)
+                self.topaxesinitfuncs.append(None)
+            else:
+                width = 1 - self.hmargin_c
+                ax = self.fig.add_axes(
+                    [self.hmargin_c, y, width, self.topaxesheight_c])
+                ax.set_axis_off()
+                self.topaxess.append(ax)
+                self.topaxesupdatefuncs.append(None)
+                self.topaxesinitfuncs.append(None)
+        hpos += self.imagepannelwidth_c + self.hspace_c
+
+        y = self.vmargin_c + self.timebarheight_c / 2.0
+        #print(y)
+        self.timebar = self.fig.text(self.hmargin_c, y, "Time bar",
+                                     horizontalalignment='left',
+                                     verticalalignment='center', color=self.timecolor,
+                                     fontsize=self.timebarfontsize)
+        #self.timebar.set_animated(True)
+
+        self.ims = ims
+        self.cbs = cbs
+        self.ax_wave = ax_wave
+
+    def draw_sleepstagebar(self, ax, y, height, episodes):
+        colors = {'nrem': ((0,112/255,192/255), (0,112/255,192/255)),
+                  'rem': ((192/255,0,0), (192/255,0,0)),
+                  'anrem': ((0, 176/255, 240/255), (0,112/255,192/255)),
+                  'wake': ((146/255, 208/255, 80/255), (146/255, 208/255, 80/255))}
+        for stage, el in episodes.items():
+            for (start, end) in el:
+                ax.add_patch(patches.Rectangle((start,y), end-start, height/2, facecolor=colors[stage][0]))#, edgecolor=(0.5,0.5,0.5)))
+                ax.add_patch(patches.Rectangle((start, y+height/2), end - start, height/2, facecolor=colors[stage][1]))#, edgecolor=(0.5,0.5,0.5)))
+        return ax
+
+    def update_img(self, n):
+
+        ars, frameno, time = next(self.framegenerator)
+        changed = []
+        if not np.isnat(self.fta.startdatetime) and self.showdatetime==True:
+            textline = f'{self.fta.time_to_datetime(time)}'[:-6]
+        else:
+            textline = f'{time:.3f} s.'
+        if self.include_frameno:
+            textline = '{}    Frame: {:d}'.format(textline, frameno)
+        if self.include_dt:
+            textline = '{}    dt: {:.3f} ms'.format(textline,
+                                                    1000 * self.fta.decimate / float(
+                                                        self.fta.mcutss[0].fs))
+        if self.fta.realslowdown != 1.0:
+            textline = '{}    Slowdown: {:.2f}x'.format(textline,
+                                                        self.fta.realslowdown)
+        self.timebar.set_text(textline)
+        changed.append(self.timebar)
+        if not self.dynamicimlabels is None:
+            for i, dl in enumerate(self.dynamicimlabels):
+                labelrow = dl[
+                    ((dl['starttime'] <= time) & (dl['endtime'] > time))]
+                if len(labelrow) == 0:
+                    self.dynamicimlabeltext[i].set_text('')
+                    self.dynamicimlabeltext[i].set_color('#ffffff')
+                elif len(labelrow) == 1:
+                    fields = set(labelrow.dtype.fields) - set(['starttime', 'endtime'])
+                    for field in fields:
+                        self.dynamicimlabeltext[i].set(
+                            **{field: labelrow[0][field]})
+                elif len(labelrow) > 1:
+                    raise ValueError(
+                        'More than one label at time {} s.'.format(time))
+                changed.append(self.dynamicimlabeltext[i])
+                # print self.dynamicimlabeltext[i].get_animated(), self.dynamicimlabeltext[i].get_text(),\
+            #                       self.dynamicimlabeltext[i].get_position(), self.dynamicimlabeltext[i].get_color()
+        for i, (im, ar) in enumerate(zip(self.ims, ars)):
+            im.set_data(ar)
+            changed.append(im)
+        for topaxesupdatefunc in self.topaxesupdatefuncs:
+            if not topaxesupdatefunc is None:
+                #topaxesupdatefunc(time, frameno)
+                for change in topaxesupdatefunc(time, frameno):
+                    changed.append(change)
+        self.timeindicatorline.set_data((time, time), (0., self.waveplotheight))
+        changed.append(self.timeindicatorline)
+        self.fig.canvas.blit(self.fig.bbox)
+        if self.savepng:
+            self.fig.savefig(
+                os.path.join(self.pngfullpath, 'frame%.3d.png' % (n)),
+                dpi=self.dpi, **self.savefig_kwargs)
+
+        return tuple(changed)
+
+    # FIXME update path to python3
+    def add_sound(self, filename, path='.', keepwav=False,
+                  keeporiginal=False, ffmpegbin='ffmpeg',
+                  soxbin='sox'):
+
+        slowdown = self.fta.realslowdown
+        with uts.io.utils.tempdir(path, keep=keepwav) as tempwavdir:
+            wavpath = os.path.join(tempwavdir, 'even.wav')
+            uts.io.audio.save_wav(self.sound, wavpath)
+            if slowdown != 1.0:
+                args = [soxbin, wavpath,
+                        os.path.join(tempwavdir, 'even_slow.wav'),
+                        "speed", "%f" % (1 / slowdown), "dither", "-s"]
+                subprocess.call(args)
+                wavpath = os.path.abspath(
+                    os.path.join(tempwavdir, 'even_slow.wav'))
+            moviewithsoundname = os.path.splitext(filename)[0] + '_snd.mp4'
+            args = [ffmpegbin, '-y', '-i', filename, '-i', wavpath,
+                    '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-shortest']
+            args.extend(['-strict',  '-2'])
+            args.append(moviewithsoundname)
+            subprocess.check_call(args)
+        if not keeporiginal:
+            Path(filename).unlink()
+
+
+    def create(self, basefilename, path='.',
+               codec=None,
+               vextraargs=None,
+               blit=False,
+               overwrite=False,
+               savepng=False):
+        """default codec: h264_yuv420"""
+
+        def initanim():
+            changed = []
+            for im in self.ims:
+                im.set_data([[], []])
+                changed.append(im)
+            for dl in self.dynamicimlabeltext:
+                dl.set_text('')
+                changed.append(dl)
+            self.timebar.set_text('Timebar')
+            changed.append(self.timebar)
+            for topaxesinitfunc in self.topaxesinitfuncs:
+                if not topaxesinitfunc is None:
+                    #topaxesinitfunc()
+                    for change in topaxesinitfunc():
+                        changed.append(change)
+            self.timeindicatorline.set_data((self.starttime, self.starttime),
+                                            (0., len(self.channelorder)*self.wavescaling))
+            changed.append(self.timeindicatorline)
+            return tuple(changed)
+
+        self.framegenerator =self.fta.generate_frames()
+        self.savepng = savepng
+        if codec is None:
+            codec = 'h264_yuv420'
+        vargs, extension = codecs[codec]
+        if vextraargs is None:
+            vextraargs = vargs
+
+        filename = basefilename + extension
+        fullpath = os.path.join(path, filename)
+        if os.path.exists(fullpath):
+            if overwrite:
+                os.remove(fullpath)
+            else:
+                raise IOError(
+                    "File '{}' exists, use overwrite parameter to overwrite".format(
+                        fullpath))
+        if self.savepng:
+            self.pngfullpath = os.path.join(path, '%s_pngs' % basefilename)
+            if not os.path.exists(self.pngfullpath):
+                os.makedirs(self.pngfullpath)
+        nframes = int(self.fta.ntimesamples)
+        ani = animation.FuncAnimation(self.fig, self.update_img, nframes,
+                                      init_func=initanim,
+                                      interval=self.fta.fps,
+                                      blit=blit)
+
+        writer = animation.FFMpegWriter(fps=self.fta.fps, bitrate=-1,
+                                             extra_args=vextraargs)
+        ani.save(fullpath, writer=writer, dpi=self.dpi,
+                 savefig_kwargs=self.savefig_kwargs)
+        plt.close(self.fig)
+        if not (self.sound is None):
+            self.add_sound(filename=filename, path=path,
+                           keeporiginal=False)
 
 
