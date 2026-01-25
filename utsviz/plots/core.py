@@ -69,7 +69,7 @@ class GridAxes(object):
                  vlines=None, vlinecolor=(0.5, 0.5, 0.5),
                  hlines=None, hlinecolor=(0.5, 0.5, 0.5),
                  vlinewidth=1., hlinewidth=1.,
-                 frameon=False,
+                 frameon=False, framecolor=(0.7, 0.7, 0.7),
                  fig=None):
 
         if left is None:
@@ -96,6 +96,9 @@ class GridAxes(object):
                                                        frameon=frameon)
                 ax.set_xticks(())
                 ax.set_yticks(())
+                if frameon:
+                    for spine in ax.spines.values():
+                        spine.set_edgecolor(framecolor)
                 if (coln == 0) and (rown == ny - 1):
                     ax.tick_params(direction='out', top=False, right=False)
                     self.ylabelsubplot = ax
