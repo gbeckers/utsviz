@@ -108,7 +108,7 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
                 ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
                 ga=None, vlines=None, hlines=None, vlinecolor=(0.5, 0.5, 0.5),
                 hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1., frameon=False,
-                **kwargs):
+                framecolor=(0,0,0), **kwargs):
     if ga is None:
         ga = GridAxes(emcuts.geometry, wspace=wspace, hspace=hspace,
                       left=left, right=right,
@@ -118,7 +118,7 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
                       vlines=vlines, vlinecolor=vlinecolor,
                       hlines=hlines, hlinecolor=hlinecolor,
                       vlinewidth=vlinewidth, hlinewidth=hlinewidth,
-                      frameon=frameon, fig=None)
+                      frameon=frameon, framecolor=framecolor, fig=None)
     defaults = {'aspect': 'auto', 'interpolation': 'nearest'}
     if 'linewidth' in kwargs:
         linewidth = kwargs['linewidth']
@@ -148,7 +148,7 @@ def plot_euts(euts, ax=None, clim=None, cmap='hot',
                 ylabel=None, xlabel='Time (s)', yticks=None, xticks=None,
                 vlines=None, hlines=None, vlinecolor=(0.5, 0.5, 0.5),
                 hlinecolor=(0.5,0.5,0.5), vlinewidth=1., hlinewidth=1.,
-                frameon=False, **kwargs):
+                frameon=False, framecolor=(0,0,0), **kwargs):
     defaults = {'aspect': 'auto', 'interpolation': 'nearest'}
 
     for key, item in defaults.items():
@@ -175,6 +175,9 @@ def plot_euts(euts, ax=None, clim=None, cmap='hot',
         ax.set_xticks(xticks)
     if yticks is not None:
         ax.set_yticks(yticks)
+    if frameon:
+        for spine in ax.spines.values():
+            spine.set_edgecolor(framecolor)
     return ax
 
 def euts_image(euts, ranges=None, clip=None, zeroincenter=False,
