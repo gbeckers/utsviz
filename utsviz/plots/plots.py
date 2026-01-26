@@ -54,7 +54,7 @@ def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
                ylabel=None, xlabel='Time (s)', yticks=(), xticks=(),
                autoyticks=False, ga=None, vlines=None, hlines=None,
                vlinecolor=(0.5, 0.5, 0.5), hlinecolor=(0.5,0.5,0.5),
-               vlinewidth=1., hlinewidth=1., frameon=False, **kwargs):
+               vlinewidth=1., hlinewidth=1., frameon=False, framecolor=(0,0,0), **kwargs):
     if ga is None:
         ga = GridAxes(mcuts.geometry, wspace=wspace, hspace=hspace,
                       left=left, right=right,
@@ -64,7 +64,7 @@ def plot_mcuts(mcuts, ylim=None, xlim=None, wspace=0.06,
                       vlines=vlines, vlinecolor=vlinecolor,
                       hlines=hlines, hlinecolor=hlinecolor,
                       vlinewidth=vlinewidth, hlinewidth=hlinewidth,
-                      frameon=frameon, fig=None)
+                      frameon=frameon, framecolor=framecolor, fig=None)
 
     defaults = {'color': (0.3,0.3,0.3)}
     if 'linewidth' in kwargs:
