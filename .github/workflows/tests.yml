@@ -85,13 +85,20 @@ jobs:
       - name: Install uts
         # uts is not on PyPI (that name belongs to an unrelated project), so
         # it comes from GitHub, over ssh because of the deploy key above.
+        #
+        # Pinned to a release rather than master, so that a failure here is
+        # about utsviz and not about whatever uts happens to have been pushed
+        # this morning. Bump the tag deliberately when utsviz should follow a
+        # new uts; nothing else refers to this version.
+        #
+        # Built from source rather than taken from the release wheels:
         # --no-build-isolation makes its Cython extensions compile against the
         # numpy pinned above rather than one pip fetches for the build, which
         # is what keeps the numpy 1 job honest: an isolated build would
         # compile against numpy 2 headers and hide a numpy 1 problem.
         run: >-
           python -m pip install
-          "uts @ git+ssh://git@github.com/gbeckers/uts@master"
+          "uts @ git+ssh://git@github.com/gbeckers/uts@v2.6.0"
           --no-build-isolation --no-deps
 
       - name: Build and install utsviz

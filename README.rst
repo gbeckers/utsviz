@@ -38,16 +38,20 @@ scipy 1.18.
 Continuous integration
 ----------------------
 
-The tests workflow installs uts from GitHub. Both repositories are private,
-and a workflow's built-in ``GITHUB_TOKEN`` only reaches its own repository, so
-CI authenticates with a read-only deploy key:
+The tests workflow installs uts from GitHub, pinned to a released tag
+(currently ``v2.6.0``) rather than to master, so that a red build means
+something changed in utsviz. Following a newer uts is a deliberate edit of
+that tag in ``.github/workflows/tests.yml``.
+
+Both repositories are private, and a workflow's built-in ``GITHUB_TOKEN`` only
+reaches its own repository, so CI authenticates with a read-only deploy key:
 
 - the public half is registered under uts → Settings → Deploy keys,
 - the private half is stored as the ``UTS_DEPLOY_KEY`` secret of this
   repository.
 
 If uts is ever made public, the deploy key step can be dropped and the install
-switched back to ``git+https://github.com/gbeckers/uts@master``.
+switched back to ``git+https://github.com/gbeckers/uts@v2.6.0``.
 
 Running the tests
 -----------------
