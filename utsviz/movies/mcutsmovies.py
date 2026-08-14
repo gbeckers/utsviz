@@ -5,17 +5,17 @@ import matplotlib
 import numpy as np
 import uts
 from sys import stdout
-from matplotlib import cm
 import os
 from pathlib import Path
 import subprocess
 import matplotlib.animation as animation
-from matplotlib.pylab import plt
+import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.patches as patches
 import matplotlib.lines as lines
 import matplotlib.patches as patches
 from scipy.signal import spectrogram
+
+from ..colormaps import check_colormap
 
 
 
@@ -123,11 +123,12 @@ class FramesTimeAligned(uts.UniformTime):
         return hflips
 
     def check_colormaps(self, colormaps, mcutss):
+        # matplotlib.cm.get_cmap, which this used to call, was removed in
+        # matplotlib 3.9; check_colormap also accepts the utsviz colormaps.
         if colormaps is None:
-            return [cm.jet for mcuts in mcutss]
+            return [check_colormap('jet') for mcuts in mcutss]
         else:
-            return [cmap if hasattr(cmap, '__call__') else cm.get_cmap(cmap)
-                    for cmap in colormaps]
+            return [check_colormap(cmap) for cmap in colormaps]
     # TODO choose something reasonable if None
     def check_clips(self, clips, mcutss):
         if clips is None:
@@ -882,7 +883,9 @@ class HPanelImgPlusPlotMovie(object):
         x = hpos + self.imagepannelwidth_c / 2.0
         y = 1 - 2 * self.vmargin_c - self.topaxesheight_c - self.staticimlabelbarheight_c / 2.0
         if not self.staticimlabels is None:
-            t = self.fig.text(x, y, self.staticimlabels[i],
+            # there is exactly one image panel in this class, so there is no
+            # loop variable here; "i" was left over from HPanelMovie
+            t = self.fig.text(x, y, self.staticimlabels[0],
                           horizontalalignment='center',
                           verticalalignment='center', color=self.staticimlabelscolor,
                           fontsize=self.labelbarfontsize)

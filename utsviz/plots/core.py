@@ -18,7 +18,7 @@ def plot(s, **kwargs):
     elif isemcuts(s):
         return plots.plot_emcuts(s, **kwargs)
     elif isspectrum(s):
-        return plots.spectrum_plot(s, **kwargs)
+        return plots.plot_spectrum(s, **kwargs)
     elif ispowerspectrum(s):
         return plots.plot_powerspectrum(s, **kwargs)
     else:
@@ -80,6 +80,12 @@ class GridAxes(object):
             bottom = 0
         if top is None:
             top = 1.0
+        # plot_spectrum passes these through as None, which set_xticks and
+        # set_yticks reject; no ticks is what None means here
+        if xticks is None:
+            xticks = ()
+        if yticks is None:
+            yticks = ()
         if fig is None:
             fig = plt.gcf()
         gs = matplotlib.gridspec.GridSpec(nrows=g.ny, ncols=g.nx,

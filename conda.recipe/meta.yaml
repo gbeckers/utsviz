@@ -1,28 +1,39 @@
+# The version comes from the git tag, matching setuptools-scm. It cannot be
+# read from setup.py any more: the packaging metadata moved to pyproject.toml.
 package:
   name: utsviz
-  version: 0.1.0
+  version: {{ environ.get('GIT_DESCRIBE_TAG', '0.0.0') | replace('v', '') }}
 
 source:
   path: ..
 
-requirements:
-  build:
-    - python
-    - setuptools
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
 
+requirements:
+  host:
+    - python >=3.10
+    - pip
+    - setuptools >=64
+    - setuptools-scm >=8
   run:
-    - python
-    - numpy >=1.12
-    - matplotlib
-    - scipy
-    - seaborn
+    - python >=3.10
+    - numpy >=1.22
+    - scipy >=1.9
+    - matplotlib-base >=3.6
+    # uts is not packaged for conda; install it from GitHub, see the README
+
+test:
+  imports:
+    - utsviz
 
 about:
-  home: https://github.com/gbeckers/
+  home: https://github.com/gbeckers/utsviz
   license: BSD-3-Clause
   license_family: BSD
   license_file: LICENSE
   summary: >-
-    A Python science library for visualizing signals from uts library.
+    A Python science library for visualizing signals from the uts library.
   description: |
-    A Python science library for visualizing signals from uts library
+    A Python science library for visualizing signals from the uts library.

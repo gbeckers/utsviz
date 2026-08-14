@@ -1,0 +1,75 @@
+[build-system]
+# Replaces the old setup.py / versioneer build. There are no compiled
+# extensions here, so a plain isolated build works and there is no numpy ABI
+# concern of the kind that uts has to deal with.
+requires = [
+    "setuptools>=64",
+    "setuptools-scm>=8",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "utsviz"
+description = "A python package for uniform time series visualization"
+readme = "README.rst"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Gabriel J.L. Beckers", email = "gabriel@gbeckers.nl" },
+]
+# Matches uts, which utsviz is useless without.
+requires-python = ">=3.10"
+dynamic = ["version"]
+
+# uts is deliberately *not* listed here. It is not on PyPI (the name is taken
+# by an unrelated project), so a plain "uts" requirement would install the
+# wrong package, and a git direct reference would clobber a local editable
+# checkout on every install. Install uts from GitHub first; see the README.
+#
+# matplotlib >= 3.6 because the colormap registry (matplotlib.colormaps) is
+# used instead of the removed matplotlib.cm.get_cmap. The suite is run against
+# python 3.11 with matplotlib 3.7 and numpy 1.25, and against python 3.14 with
+# matplotlib 3.11 and numpy 2.5.
+dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.9",
+    "matplotlib>=3.6",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.urls]
+Source = "https://github.com/gbeckers/utsviz"
+
+[tool.setuptools]
+# There is no package data, and this keeps utsviz/plots/static_py_old.txt (an
+# archived copy of pre-2015 code) out of the wheel.
+include-package-data = false
+packages = [
+    "utsviz",
+    "utsviz.plots",
+    "utsviz.movies",
+    "utsviz.tests",
+]
+
+[tool.setuptools_scm]
+# Replaces versioneer 0.16, which imported distutils and so did not survive
+# python 3.12. The existing v-prefixed tags are read as they are.
+# "no-guess-dev" keeps the version anchored to the last real tag instead of
+# guessing the next one, so a version still says which release it came after.
+version_scheme = "no-guess-dev"
+local_scheme = "node-and-date"

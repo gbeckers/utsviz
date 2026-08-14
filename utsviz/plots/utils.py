@@ -1,21 +1,17 @@
 import numpy as np
-import matplotlib.cm
-import scipy
-import os.path
+# Submodules of scipy are not imported by "import scipy"; the functions used
+# below were reached that way and so raised AttributeError.
+import scipy.ndimage
+import scipy.stats
 
-from utsviz.colormaps import check_colormap
-
-from matplotlib.image import imsave
+from utsviz.colormaps import check_colormap, pngcolorbar
 
 __all__ = ['save_pngcolormap', 'tableau20', 'to_image', 'iminterpolate']
 
 
-def save_pngcolormap(filename, colormap=matplotlib.cm.jet, width=300, height=20):
-    colormap = check_colormap(colormap)
-    bar = np.empty((height, width, 4), dtype=np.float64)
-    bar[:, ..., :] = colormap(np.linspace(0., 1., width))
-    imsave(filename, bar)
-    return os.path.abspath(filename)
+def save_pngcolormap(filename, colormap='jet', width=300, height=20):
+    return pngcolorbar(filename, colormap=colormap, width=width,
+                       height=height)
 
 
 # FIXME possibility of setting nan to number
@@ -55,23 +51,28 @@ def to_image(samples, ranges=None, clip=None, zeroincenter=False,
 def iminterpolate(im, newxsize, newysize, xyvalranges=(0, 1, 0, 1),
                   newxyvalranges=(0, 1, 0, 1)):
     '''
-    Interpolates image (rows,cols,channels)
+    Interpolates image (rows,cols) or (rows,cols,channels)
     :param im:
     :param newxsize:
     :param newysize:
     :param xyvalranges:
     :param newxyvalranges:
     '''
+    im = np.asarray(im)
     needxinterp = (newxsize != im.shape[0])
     needyinterp = (newysize != im.shape[1])
 
     if needxinterp or needyinterp:  # we need to interpolate image
         xfrom, xto, yfrom, yto = xyvalranges
         newxfrom, newxto, newyfrom, newyto = newxyvalranges
-        xsize, ysize = im.shape
+        # only the first two axes are spatial; unpacking the whole shape
+        # failed on the (rows, cols, channels) images this documents
+        xsize, ysize = im.shape[:2]
 
-        x, y = scipy.ogrid[xfrom:xto:xsize * 1j, yfrom:yto:ysize * 1j]
-        newx, newy = scipy.mgrid[newxfrom:newxto:newxsize * 1j, newyfrom:newyto:newysize * 1j]
+        # scipy.ogrid and scipy.mgrid were aliases of the numpy objects and
+        # are gone from the scipy namespace.
+        x, y = np.ogrid[xfrom:xto:xsize * 1j, yfrom:yto:ysize * 1j]
+        newx, newy = np.mgrid[newxfrom:newxto:newxsize * 1j, newyfrom:newyto:newysize * 1j]
         x0 = x[0, 0]
         y0 = y[0, 0]
         dx = x[1, 0] - x0
@@ -79,7 +80,11 @@ def iminterpolate(im, newxsize, newysize, xyvalranges=(0, 1, 0, 1),
         ivals = (newx - x0) / dx
         jvals = (newy - y0) / dy
         coords = np.array([ivals, jvals])
-        im = scipy.ndimage.map_coordinates(im, coords)
+        if im.ndim == 2:
+            im = scipy.ndimage.map_coordinates(im, coords)
+        else:  # map_coordinates takes one coordinate per axis, so per channel
+            im = np.stack([scipy.ndimage.map_coordinates(im[..., i], coords)
+                           for i in range(im.shape[2])], axis=-1)
     return im
 
 # def tableau20():

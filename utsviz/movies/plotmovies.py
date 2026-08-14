@@ -48,8 +48,9 @@ def plot_single(s, width, height, filename, ticks=False, fps=60.,
     extra_args = ['-pix_fmt', 'yuv420p']# '-crf', str(crf), '-preset', preset]
     mywriter = animation.FFMpegWriter(fps=fps, codec=codec, bitrate=bitrate,
                                       extra_args=extra_args)
-    savefig_kwargs = {'facecolor': 'white', 'edgecolor': 'white',
-                      'alpha':1.0}
+    # 'alpha' is not a savefig parameter; matplotlib now passes unknown
+    # keywords on to the backend, which rejects them with a TypeError
+    savefig_kwargs = {'facecolor': 'white', 'edgecolor': 'white'}
 
     anim.save(filename, writer=mywriter, savefig_kwargs=savefig_kwargs)
     # anim = animation.FuncAnimation(fig, animate, init_func=init,

@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 __author__ = 'gabriel'
 
 import os
@@ -8,10 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.gridspec
-import matplotlib.cm
 import uts
 from uts.core.geometry import RectangularLattice
 from .core import GridAxes
+from ..colormaps import check_colormap
 
 
 def plot_uts(s, ax=None, ylim=None, vlines=None, hlines=None, hline=None, vline=None, vlinecolor='k',
@@ -127,6 +125,9 @@ def plot_emcuts(emcuts, clim=None, wspace=0.06, cmap='hot',
     for key, item in defaults.items():
         if not key in kwargs:
             kwargs[key] = item
+    # so that the utsviz colormaps can be used by name here too; matplotlib
+    # only knows the ones in its own registry
+    cmap = check_colormap(cmap)
     if clim is None:
         low = np.min(uts.min(emcuts))
         high = np.max(uts.max(emcuts))
@@ -154,6 +155,9 @@ def plot_euts(euts, ax=None, clim=None, cmap='hot',
     for key, item in defaults.items():
         if not key in kwargs:
             kwargs[key] = item
+    # so that the utsviz colormaps can be used by name here too; matplotlib
+    # only knows the ones in its own registry
+    cmap = check_colormap(cmap)
     if clim is None:
         low = np.min(uts.min(euts))
         high = np.max(uts.max(euts))
@@ -189,8 +193,9 @@ def euts_image(euts, ranges=None, clip=None, zeroincenter=False,
         raise ValueError("You cannot set ranges and clip parameters at the"
                          " same time")
     if colormap is None:
-        colormap = matplotlib.cm.hot
-    samples = euts.samples.get(copy=True)
+        colormap = 'hot'
+    colormap = check_colormap(colormap)
+    samples = np.asarray(euts.samples.get(copy=True), dtype=np.float64)
     if euts.epochaxis == 1:
         samples = np.rot90(samples)
     low = samples.min()
@@ -218,7 +223,6 @@ def euts_image(euts, ranges=None, clip=None, zeroincenter=False,
     return colors
 
 
-# FIXME use plt.imsave
 def save_euts_image(euts, basefilename, path='.', ranges=None, clip=None,
                     zeroincenter=False, invert=False, colormap=None,
                     includebar=False, transparantcolor=None):
@@ -229,12 +233,14 @@ def save_euts_image(euts, basefilename, path='.', ranges=None, clip=None,
         The values at which clipping should take place (cmin, cmax).
 
     """
-    from scipy.misc import toimage
+    # scipy.misc.toimage was removed in scipy 1.3; matplotlib writes these
+    # RGBA float arrays itself, which is what the old FIXME here asked for.
+    from matplotlib.image import imsave
     from os.path import abspath, join
-    from pylab import cm
 
     if colormap is None:
-        colormap = cm.jet
+        colormap = 'jet'
+    colormap = check_colormap(colormap)
     if (not (clip is None)) and (not (ranges is None)):
         raise ValueError("You cannot set ranges and clip parameters at the"
                          " same time")
@@ -243,17 +249,15 @@ def save_euts_image(euts, basefilename, path='.', ranges=None, clip=None,
                     zeroincenter=zeroincenter, invert=invert,
                     colormap=colormap, includebar=includebar,
                     transparantcolor=transparantcolor)
-    im = toimage(im)
     absfilename = join(path, '%s.png' % basefilename)
-    im.save(absfilename)
+    imsave(absfilename, im)
     if includebar:
         if invert:
             bar = np.linspace(1.0, 0.0, 512).reshape(1, -1)
         else:
             bar = np.linspace(0.0, 1.0, 512).reshape(1, -1)
-        barim = toimage(colormap(bar))
-        absfilename = join(path, '%s_bar.png' % basefilename)
-        barim.save(absfilename)
+        barfilename = join(path, '%s_bar.png' % basefilename)
+        imsave(barfilename, colormap(bar))
     return absfilename
 
     ## uts

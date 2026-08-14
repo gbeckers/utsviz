@@ -1,0 +1,102 @@
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # The tests select Agg themselves, but a CI runner has no display and
+  # nothing should depend on that happening early enough.
+  MPLBACKEND: Agg
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      # Run every configuration even when one fails, so a numpy 2 break and a
+      # pinned-environment break are visible in the same run.
+      fail-fast: false
+      matrix:
+        include:
+          # The old stack, pinned as in the environment utsviz has been used
+          # in. matplotlib 3.7 still has the APIs that 3.9 removed, so this
+          # configuration is what catches a fix that only works one way round.
+          - name: "pinned (py3.11, numpy 1, mpl 3.7)"
+            python: "3.11"
+            pins: >-
+              numpy==1.25.2 scipy==1.11.1 matplotlib==3.7.2 pandas==2.0.3
+              tables==3.8.0 h5py==3.9.0 numexpr==2.8.4 cython==3.0.0
+          # Current numpy 2 and matplotlib on the same python.
+          - name: "numpy 2 (py3.11)"
+            python: "3.11"
+            pins: >-
+              numpy>=2 scipy matplotlib pandas tables h5py numexpr
+              cython>=3.0.10
+          # Newest python, everything latest. Also proves the pyproject build
+          # works past 3.11, which the old versioneer build could not.
+          - name: "latest (py3.14, numpy 2)"
+            python: "3.14"
+            pins: >-
+              numpy>=2 scipy matplotlib pandas tables h5py numexpr
+              cython>=3.0.10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # setuptools-scm derives the version from the git tags, and a
+          # shallow clone fetches none: the version comes out as
+          # 0.0.post1.dev1+g<hash> instead of 0.2.3.post1.dev0+g<hash>.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        # The pins cover what utsviz needs (numpy, scipy, matplotlib) as well
+        # as what uts needs to build and import, because uts is installed
+        # below without build isolation and without its own dependencies.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install setuptools wheel "setuptools-scm>=8" pytest darr
+          python -m pip install ${{ matrix.pins }}
+
+      - name: Install uts
+        # uts is not on PyPI (that name belongs to an unrelated project), so
+        # it comes from GitHub. --no-build-isolation makes its Cython
+        # extensions compile against the numpy pinned above rather than one
+        # pip fetches for the build, which is what keeps the numpy 1 job
+        # honest: an isolated build would compile against numpy 2 headers and
+        # hide a numpy 1 problem.
+        run: >-
+          python -m pip install
+          "uts @ git+https://github.com/gbeckers/uts@master"
+          --no-build-isolation --no-deps
+
+      - name: Build and install utsviz
+        # Installed rather than editable, so the tests run against a real
+        # installation, and --no-deps so nothing quietly replaces the pins.
+        run: python -m pip install . --no-deps
+
+      - name: Report versions
+        run: |
+          python -c "import sys; print('python', sys.version)"
+          python -c "import numpy, scipy, matplotlib; print('numpy', numpy.__version__, 'scipy', scipy.__version__, 'matplotlib', matplotlib.__version__)"
+          python -c "import uts, utsviz; print('uts', uts.__version__, 'utsviz', utsviz.__version__)"
+        working-directory: ${{ runner.temp }}
+
+      - name: Run the package's own test runner
+        # utsviz.tests.test() returns a TestResult and does not set an exit
+        # status, so a bare call would report success even with failing tests.
+        run: >-
+          python -c "import sys, utsviz.tests as t; sys.exit(0 if t.test().wasSuccessful() else 1)"
+        working-directory: ${{ runner.temp }}
+
+      - name: Run pytest
+        # Run from outside the source tree, so that the installed package is
+        # what gets imported and collected.
+        run: pytest --pyargs utsviz -q
+        working-directory: ${{ runner.temp }}

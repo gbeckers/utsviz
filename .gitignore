@@ -1,0 +1,17 @@
+# Python bytecode
+*.pyc
+__pycache__/
+
+# Build and packaging
+build/
+dist/
+utsviz.egg-info/
+
+# Environments
+venv/
+
+# Editors
+.idea/
+
+# Test tooling
+.pytest_cache/
