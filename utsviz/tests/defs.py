@@ -18,8 +18,9 @@ from uts.core.uniformtime import (EpochedMultiChannelUniformTimeSeries,
 from uts.signalfactory import testsignals
 
 # The multichannel signals are built here rather than with uts's testmcuts and
-# testemcuts because those raise NameError when asked for a geometry (uts 2.5),
-# and every grid plot in utsviz needs one.
+# testemcuts, which could not produce one with a geometry until after uts
+# 2.5.0. Every grid plot in utsviz needs a geometry, and building the signals
+# here keeps these fixtures independent of which uts is installed.
 
 
 def lattice(nx=2, ny=3, channelnames=None):
