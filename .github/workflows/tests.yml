@@ -64,16 +64,34 @@ jobs:
           python -m pip install setuptools wheel "setuptools-scm>=8" pytest darr
           python -m pip install ${{ matrix.pins }}
 
+      - name: Set up the deploy key for uts
+        # gbeckers/uts is private, and the built-in GITHUB_TOKEN is scoped to
+        # this repository alone, so it cannot read it. UTS_DEPLOY_KEY is the
+        # private half of a read-only deploy key on gbeckers/uts. The secret
+        # is passed through the environment rather than expanded into the
+        # script, which is what keeps it out of the command line.
+        env:
+          DEPLOY_KEY: ${{ secrets.UTS_DEPLOY_KEY }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::error::secret UTS_DEPLOY_KEY is not set; see the README" >&2
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts
+
       - name: Install uts
         # uts is not on PyPI (that name belongs to an unrelated project), so
-        # it comes from GitHub. --no-build-isolation makes its Cython
-        # extensions compile against the numpy pinned above rather than one
-        # pip fetches for the build, which is what keeps the numpy 1 job
-        # honest: an isolated build would compile against numpy 2 headers and
-        # hide a numpy 1 problem.
+        # it comes from GitHub, over ssh because of the deploy key above.
+        # --no-build-isolation makes its Cython extensions compile against the
+        # numpy pinned above rather than one pip fetches for the build, which
+        # is what keeps the numpy 1 job honest: an isolated build would
+        # compile against numpy 2 headers and hide a numpy 1 problem.
         run: >-
           python -m pip install
-          "uts @ git+https://github.com/gbeckers/uts@master"
+          "uts @ git+ssh://git@github.com/gbeckers/uts@master"
           --no-build-isolation --no-deps
 
       - name: Build and install utsviz

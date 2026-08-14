@@ -35,6 +35,20 @@ The test suite is run against python 3.11 with numpy 1.25, matplotlib 3.7 and
 scipy 1.11, and against python 3.14 with numpy 2.5, matplotlib 3.11 and
 scipy 1.18.
 
+Continuous integration
+----------------------
+
+The tests workflow installs uts from GitHub. Both repositories are private,
+and a workflow's built-in ``GITHUB_TOKEN`` only reaches its own repository, so
+CI authenticates with a read-only deploy key:
+
+- the public half is registered under uts → Settings → Deploy keys,
+- the private half is stored as the ``UTS_DEPLOY_KEY`` secret of this
+  repository.
+
+If uts is ever made public, the deploy key step can be dropped and the install
+switched back to ``git+https://github.com/gbeckers/uts@master``.
+
 Running the tests
 -----------------
 
