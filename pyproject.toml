@@ -63,7 +63,7 @@ packages = [
     "utsviz",
     "utsviz.plots",
     "utsviz.movies",
-    "utsviz.movies",
+    "utsviz.movie",
     "utsviz.tests",
 ]
 
