@@ -114,7 +114,8 @@ class Movie:
         `key` can also be a matplotlib Axes of the figure.
         """
         ax = self.axes[key] if not isinstance(key, matplotlib.axes.Axes) else key
-        ax.set_axis_on()
+        if not any(p.ax is ax for p in self.panels):  # the first panel decides, e.g. images hide the axis
+            ax.set_axis_on()
         panel.setup(ax, self)
         self.panels.append(panel)
         return panel

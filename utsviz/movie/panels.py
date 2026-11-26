@@ -7,15 +7,23 @@ change, so that the movie can draw everything else once, as a background.
 
 To write a new kind of panel, subclass `Panel` and implement `draw` and
 `update`.
+
+Note: when a movie is written, everything that is not returned by `draw` as changing is drawn
+once, as a background, and the changing artists are drawn on top of it in every frame. A static
+artist that should be visible on top of a changing one in the same axes (e.g. a line on an
+`ElectrodeImage`) must therefore be part of a panel and returned as changing, too.
 """
 
 import matplotlib
+import matplotlib.collections
 import matplotlib.colors
+import matplotlib.patches
 import numpy as np
 
 from ..colormaps import check_colormap
 
-__all__ = ['Panel', 'ElectrodeImage', 'Oscillogram', 'StateBar', 'TimeText']
+__all__ = ['Panel', 'ElectrodeImage', 'Oscillogram', 'StateBar', 'TimeText', 'SiteMarkers',
+           'Trajectory']
 
 
 class Panel:
@@ -370,6 +378,7 @@ class TimeText(Panel):
     def draw(self, ax):
         ax.set_axis_off()
         self.text = ax.text(*self.xy, '', transform=ax.transAxes, **self.kwargs)
+        self.text.set_in_layout(False)  # a long text should not change the layout of the axes
         return (self.text,)
 
     def update(self, time):
@@ -379,3 +388,137 @@ class TimeText(Panel):
             fields['datetime'] = self.signal.time_to_datetime(time)
         self.text.set_text(self.template.format(**fields))
         return (self.text,)
+
+
+def _timeindex(time, fs, starttime, n):
+    "Index of the sample whose period contains `time`, or None outside the samples."
+    i = int(np.floor((time - starttime) * fs))
+    return i if 0 <= i < n else None
+
+
+class SiteMarkers(Panel):
+    """Outlines the sites (e.g. electrodes) that are active at the current time, on an image in which
+    the site at grid row r and column c is centred at (x, y) = (c, r), as in `ElectrodeImage`.
+
+    Add it to the same axes as the image. The sites need not be electrodes: positions can be in
+    between grid points (e.g. bipolar derivations of neighbouring electrodes).
+
+    Parameters
+    ----------
+    active: bool array (time, site)
+        which sites are active at each sample
+    positions: array (site, 2)
+        (x, y) = (column, row) of each site; see `ElectrodeImage.channelxy` for electrodes
+    fs: float
+        sampling rate of `active`
+    starttime: float
+        signal time of the first sample of `active`
+    shape: 'square' or 'circle'
+    size: float
+        width of the outline in grid units (1 = one electrode)
+    color, linewidth: of the outline
+
+    """
+
+    def __init__(self, active, positions, fs, starttime=0., shape='square', size=0.9,
+                 color='white', linewidth=2.):
+        self.active = np.asarray(active, dtype=bool)
+        self.positions = np.asarray(positions, dtype='float64').reshape(-1, 2)
+        if self.active.ndim != 2 or self.active.shape[1] != len(self.positions):
+            raise ValueError(f'active should be (time, site) with {len(self.positions)} sites, '
+                             f'not {self.active.shape}')
+        self.fs = float(fs)
+        self.starttime = float(starttime)
+        if shape not in ('square', 'circle'):
+            raise ValueError(f"shape should be 'square' or 'circle', not {shape!r}")
+        self.shape = shape
+        self.size = size
+        self.color = matplotlib.colors.to_rgba(color)
+        self.linewidth = linewidth
+
+    def draw(self, ax):
+        h = self.size / 2
+        if self.shape == 'square':
+            patches = [matplotlib.patches.Rectangle((x - h, y - h), self.size, self.size)
+                       for x, y in self.positions]
+        else:
+            patches = [matplotlib.patches.Circle((x, y), h) for x, y in self.positions]
+        self.collection = matplotlib.collections.PatchCollection(
+            patches, facecolor='none', edgecolor=(0, 0, 0, 0), linewidth=self.linewidth, zorder=3)
+        ax.add_collection(self.collection)
+        return (self.collection,)
+
+    def activesites(self, time):
+        "Boolean array of the sites active at signal time `time` (none outside the samples)."
+        i = _timeindex(time, self.fs, self.starttime, len(self.active))
+        return self.active[i] if i is not None else np.zeros(len(self.positions), dtype=bool)
+
+    def update(self, time):
+        colors = np.zeros((len(self.positions), 4))
+        colors[self.activesites(time)] = self.color
+        self.collection.set_edgecolor(colors)
+        return (self.collection,)
+
+
+class Trajectory(Panel):
+    """The recent path of a moving point, e.g. the centroid of a wave on the electrode grid: a line
+    through its positions in the last `tail` seconds that fades towards the past, and a marker at
+    the current position.
+
+    Parameters
+    ----------
+    xy: array (time, 2)
+        (x, y) per sample, in the data coordinates of the axes (for an `ElectrodeImage`: (column,
+        row)); NaN where there is no point (the path is interrupted there)
+    fs: float
+        sampling rate of `xy`
+    starttime: float
+        signal time of the first sample of `xy`
+    tail: float
+        duration of the path that is shown (s)
+    color, linewidth: of the path
+    marker, markersize: of the current position; marker None for none
+
+    """
+
+    def __init__(self, xy, fs, starttime=0., tail=0.1, color='white', linewidth=2., marker='o',
+                 markersize=8.):
+        self.xy = np.asarray(xy, dtype='float64').reshape(-1, 2)
+        self.fs = float(fs)
+        self.starttime = float(starttime)
+        self.ntail = max(1, int(round(tail * self.fs)))
+        self.color = matplotlib.colors.to_rgba(color)
+        self.linewidth = linewidth
+        self.marker = marker
+        self.markersize = markersize
+
+    def draw(self, ax):
+        self.path = matplotlib.collections.LineCollection([], linewidths=self.linewidth,
+                                                          capstyle='round', zorder=4)
+        ax.add_collection(self.path)
+        artists = [self.path]
+        if self.marker is not None:
+            self.head, = ax.plot([], [], linestyle='none', marker=self.marker,
+                                 markersize=self.markersize, color=self.color, zorder=5)
+            artists.append(self.head)
+        return artists
+
+    def update(self, time):
+        i = _timeindex(time, self.fs, self.starttime, len(self.xy))
+        if i is None:
+            segments, colors, head = [], [], None
+        else:
+            pts = self.xy[max(0, i - self.ntail):i + 1]
+            segments = [pts[k:k + 2] for k in range(len(pts) - 1)
+                        if np.isfinite(pts[k:k + 2]).all()]
+            ages = [len(pts) - 2 - k for k in range(len(pts) - 1)
+                    if np.isfinite(pts[k:k + 2]).all()]  # 0 for the newest segment
+            colors = [(*self.color[:3], self.color[3] * (1 - a / self.ntail)) for a in ages]
+            head = self.xy[i] if np.isfinite(self.xy[i]).all() else None
+        self.path.set_segments(segments)
+        self.path.set_color(colors if colors else [(0, 0, 0, 0)])
+        artists = [self.path]
+        if self.marker is not None:
+            self.head.set_data(*(([head[0]], [head[1]]) if head is not None else ([], [])))
+            artists.append(self.head)
+        return artists
