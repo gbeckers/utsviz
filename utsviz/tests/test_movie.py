@@ -75,6 +75,15 @@ class TestMovie(MovieTestCase):
         canvas = FigureCanvasAgg(mv.fig)
         self.assertEqual(canvas.get_width_height(), (402, 302))
 
+    def test_exactpixels(self):
+        # independent of how the matplotlib version rounds: the figure is never a
+        # fraction of a pixel smaller than requested (matplotlib < 3.8 truncates)
+        from utsviz.movie.movie import _inches
+        for dpi in (50, 72, 96, 100, 150, 300):
+            for pixels in range(100, 2001, 2):
+                self.assertGreaterEqual(_inches(pixels, dpi) * dpi, pixels)
+                self.assertLess(_inches(pixels, dpi) * dpi, pixels + 1e-6)
+
     def test_needsclock(self):
         self.assertRaises(TypeError, Movie, 'A', None)
 

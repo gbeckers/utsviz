@@ -31,6 +31,16 @@ def _even(n):
     return n + (n % 2)
 
 
+def _inches(pixels, dpi):
+    """Figure size in inches that gives exactly `pixels` pixels at `dpi`. pixels / dpi can come
+    out a floating-point tick too small (402 / 50 * 50 = 401.99999999999994), and matplotlib
+    < 3.8 truncates that to 401 pixels; so take the smallest value that is not too small."""
+    inches = pixels / dpi
+    while inches * dpi < pixels:
+        inches = np.nextafter(inches, np.inf)
+    return float(inches)
+
+
 def _fitsize(rgba, height, width):
     """Crops or pads (with the last row/column) a frame to exactly height x width pixels;
     the canvas can be a pixel off the requested size through rounding."""
@@ -91,8 +101,8 @@ class Movie:
         self.dpi = float(dpi)
         self.size = (_even(size[0]), _even(size[1]))
         self.facecolor = facecolor
-        self.fig = plt.figure(figsize=(self.size[0] / self.dpi, self.size[1] / self.dpi),
-                              dpi=self.dpi, facecolor=facecolor, layout=layout)
+        figsize = (_inches(self.size[0], self.dpi), _inches(self.size[1], self.dpi))
+        self.fig = plt.figure(figsize=figsize, dpi=self.dpi, facecolor=facecolor, layout=layout)
         self.axes = self.fig.subplot_mosaic(mosaic, width_ratios=width_ratios,
                                             height_ratios=height_ratios,
                                             gridspec_kw=gridspec_kw)
