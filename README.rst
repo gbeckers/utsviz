@@ -78,6 +78,6 @@ was inspected by Gabriel.
 AI Statement
 ------------
 Since the modernization described above, Claude is used to audit the
-human-designed and -written code for bugs and compatibility. Identified issues
-are fixed, with tests, by Claude after approval and under supervision of the
-human programmer who wrote the code.
+human-designed and -written code for bugs and compatibility, but also to implement
+some of the functionality. Identified issues are fixed, with tests, by Claude after
+approval and under supervision.
