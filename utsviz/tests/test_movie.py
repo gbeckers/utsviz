@@ -6,11 +6,12 @@ from pathlib import Path
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.backend_bases import KeyEvent, MouseEvent
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 from . import defs
 from utsviz.movie import (Clock, ElectrodeImage, Movie, Oscillogram, Panel, SiteMarkers,
-                          StateBar, TimeText, Trajectory)
+                          StateBar, TimeText, Trajectory, Viewer)
 
 
 def signal(duration=0.2, fs=1000.):
@@ -292,6 +293,97 @@ class TestCustomPanel(MovieTestCase):
         mv.render(frame=5)
         self.assertAlmostEqual(dot.dot.get_xdata()[0], 0.5)
         self.assertEqual(len(list(mv.iter_frames())), 10)
+
+
+class TestViewer(MovieTestCase):
+
+    def viewer(self, **kwargs):
+        mv = movie()
+        mv.add('C', StateBar([(0., 0.1, 'a')], colors={'a': 'red'}, cursor=True))
+        return mv, Viewer(mv, **kwargs)
+
+    def key(self, vw, key):
+        KeyEvent('key_press_event', vw.fig.canvas, key)._process()
+
+    def test_frameaxes_unchanged(self):
+        mv = movie()
+        mv.fig.draw_without_rendering()
+        before = {k: ax.get_window_extent().bounds for k, ax in mv.axes.items()}
+        vw = Viewer(mv, sliderheight=0.5)
+        self.assertEqual(vw.fig.get_size_inches()[1] * mv.dpi, mv.size[1] + 0.5 * mv.dpi)
+        for k, ax in mv.axes.items():
+            x, y, w, h = ax.get_window_extent().bounds
+            np.testing.assert_allclose((x, y - 0.5 * mv.dpi, w, h), before[k], atol=1e-6)
+
+    def test_setframe(self):
+        mv, vw = self.viewer()
+        vw.setframe(30)
+        self.assertEqual(mv.frameno, 30)
+        self.assertEqual(vw.slider.val, 30)
+        osc = mv.panels[1]
+        self.assertAlmostEqual(osc.cursorline.get_xdata()[0], mv.clock.displaytime(mv.clock.time(30)))
+        vw.setframe(10 ** 6)  # clipped
+        self.assertEqual(vw.frame, len(mv.clock) - 1)
+        vw.slider.set_val(5)
+        self.assertEqual(mv.frameno, 5)
+
+    def test_blit_equals_fulldraw(self):
+        mv, vw = self.viewer()
+        canvas = vw.fig.canvas
+        canvas.draw()  # stores the background
+        vw.setframe(40)
+        blitted = np.asarray(canvas.buffer_rgba()).copy()
+        canvas.draw()
+        np.testing.assert_array_equal(blitted, np.asarray(canvas.buffer_rgba()))
+
+    def test_keys(self):
+        mv, vw = self.viewer()
+        self.key(vw, 'right')
+        self.assertEqual(vw.frame, 1)
+        self.key(vw, 'up')
+        self.assertEqual(vw.frame, 11)
+        self.key(vw, 'end')
+        self.assertEqual(vw.frame, len(mv.clock) - 1)
+        self.key(vw, 'home')
+        self.assertEqual(vw.frame, 0)
+        calls = []
+        vw.actions['n'] = calls.append
+        self.key(vw, 'n')
+        self.assertEqual(calls, [vw])
+
+    def test_click_timeaxes(self):
+        mv, vw = self.viewer()
+        vw.fig.canvas.draw()
+        for key in ('W', 'C'):  # oscillogram and state bar
+            ax = mv[key]
+            t = mv.clock.time(25)
+            x, y = ax.transData.transform((mv.clock.displaytime(t), np.mean(ax.get_ylim())))
+            MouseEvent('button_press_event', vw.fig.canvas, x, y, button=1)._process()
+            MouseEvent('button_release_event', vw.fig.canvas, x, y, button=1)._process()
+            self.assertEqual(vw.frame, 25)
+            vw.setframe(0)
+        x, y = mv['I'].transAxes.transform((0.5, 0.5))  # not a time axes
+        MouseEvent('button_press_event', vw.fig.canvas, x, y, button=1)._process()
+        self.assertEqual(vw.frame, 0)
+
+    def test_play(self):
+        mv, vw = self.viewer()
+        vw.setframe(len(mv.clock) - 2)
+        vw.play()
+        vw._tick()
+        self.assertEqual(vw.frame, len(mv.clock) - 1)
+        vw._tick()  # at the end: stops
+        self.assertFalse(vw.playing)
+        vw.loop = True
+        vw.play()  # restarts at the first frame
+        self.assertEqual(vw.frame, 0)
+        vw.pause()
+
+    def test_noslider(self):
+        mv, vw = self.viewer(slider=False)
+        np.testing.assert_allclose(vw.fig.get_size_inches() * mv.dpi, mv.size)
+        vw.setframe(3)
+        self.assertEqual(mv.frameno, 3)
 
 
 if __name__ == '__main__':

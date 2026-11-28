@@ -29,6 +29,8 @@ __all__ = ['Panel', 'ElectrodeImage', 'Oscillogram', 'StateBar', 'TimeText', 'Si
 class Panel:
     "Base class of movie panels."
 
+    timeaxis = False  # True if the x axis of the panel's axes is (display) time, as in Oscillogram
+
     def setup(self, ax, movie):
         "Called by `Movie.add`: draws the panel in `ax`."
         self.ax = ax
@@ -195,6 +197,8 @@ class Oscillogram(Panel):
 
     """
 
+    timeaxis = True
+
     def __init__(self, signal, channels=None, spacing=None, scale=1., margin=None, ylabels=None,
                  color=(0.2, 0.2, 0.2), linewidth=0.75, cursor=True, cursorcolor='#F97306',
                  cursorwidth=1., window=None, xlabel='Time (s)', xticks=None, label=None):
@@ -301,6 +305,8 @@ class StateBar(Panel):
         a label at the left
 
     """
+
+    timeaxis = True
 
     def __init__(self, intervals, colors, displaytimes=True, cursor=False, cursorcolor='#F97306',
                  cursorwidth=1., label=None):

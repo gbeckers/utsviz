@@ -157,6 +157,12 @@ class Movie:
         self.fig.canvas.draw_idle()
         return self.fig
 
+    def view(self, time=None, **kwargs):
+        """Shows the movie interactively in a window, with a slider; see `Viewer` for the
+        controls and `kwargs`. Returns the Viewer; call its `show` to open the window."""
+        from .viewer import Viewer
+        return Viewer(self, time=time, **kwargs)
+
     def savefig(self, path, time=None, frame=None, **kwargs):
         "Saves a single frame as an image, at the exact pixel size of the video."
         self.render(time=time, frame=frame)
